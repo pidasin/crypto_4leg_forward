@@ -53,12 +53,62 @@ def record_trades(leg, old, new, prices, ts=None):
         ))
     return turnover
 
+def last_nav():
+    """讀最後一筆NAV記錄"""
+    if not os.path.exists(NAV_F): return None
+    last = None
+    with open(NAV_F, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try: last = json.loads(line)
+                except Exception: pass
+    return last
+
 def record_nav(legs_state, prices, ts=None):
-    """記錄每腿的即時淨值 (依部位×價格變化累計)
-    ★paper mode: 用價格變化推算, 不需真實下單
+    """★記錄每腿淨值 + 計算PnL
+
+    bug修正(2026-07-17): 原版只記錄部位與價格, 從未計算 pnl_pct
+    → leg_returns() 永遠回傳0 → 第三層判決會拿全0的資料算Sharpe = 整個track是廢的
+
+    PnL算法(paper mode):
+      各腿PnL% = Σ(上次部位_該幣 × 該幣價格變化%) − 換手成本
+      各腿NAV  = 上次NAV × (1 + PnL%)
+      總NAV    = Σ(各腿NAV × 該腿權重)
     """
     ts = ts or datetime.now(timezone.utc).isoformat()
-    _append(NAV_F, dict(ts=ts, legs=legs_state, prices=prices))
+    prev = last_nav()
+
+    for leg, st in legs_state.items():
+        prev_leg = (prev or {}).get("legs", {}).get(leg, {})
+        prev_pos = prev_leg.get("pos", {})
+        prev_nav = prev_leg.get("nav", 1.0)
+        prev_px  = (prev or {}).get("prices", {})
+
+        # PnL = 上次部位 × 價格變化 (部位在價格變化期間持有)
+        pnl = 0.0
+        for coin, pos in (prev_pos or {}).items():
+            p0 = prev_px.get(coin); p1 = prices.get(coin)
+            if p0 and p1 and p0 > 0:
+                pnl += float(pos) * (p1/p0 - 1)
+        # 扣本次換手成本 (maker假設)
+        cost = float(st.get("turnover", 0.0)) * C.FEE_MAKER_BP / 10000
+        pnl_net = pnl - cost
+
+        st["pnl_pct"] = round(pnl_net, 8)
+        st["nav"] = round(prev_nav * (1 + pnl_net), 8)
+        st["cost_pct"] = round(cost, 8)
+
+    # 組合總NAV (各腿等權)
+    total_nav = sum(legs_state[l]["nav"] * C.LEG_WEIGHTS.get(l, 0) for l in legs_state)
+    # 未被本cycle更新的腿, 沿用上次NAV
+    for leg, w in C.LEG_WEIGHTS.items():
+        if leg not in legs_state:
+            total_nav += (prev or {}).get("legs", {}).get(leg, {}).get("nav", 1.0) * w
+
+    _append(NAV_F, dict(ts=ts, legs=legs_state, prices=prices,
+                        total_nav=round(total_nav, 8),
+                        equity_usd=round(C.CAPITAL_USD * total_nav, 2)))
 
 def record_health(records, layer, ts=None):
     ts = ts or datetime.now(timezone.utc).isoformat()
@@ -88,6 +138,65 @@ def leg_returns():
         rows.append(d)
     out = pd.DataFrame(rows).set_index("ts").sort_index()
     return out
+
+def performance():
+    """★績效摘要 — 日報與status用
+    回傳: dict(equity_usd, total_nav, pnl_usd, pnl_pct, legs={leg:{nav,pnl_pct,contrib}}, since, days)
+    """
+    df = read_jsonl(NAV_F)
+    if df.empty or "total_nav" not in df.columns:
+        return None
+    df["ts"] = pd.to_datetime(df["ts"])
+    df = df.sort_values("ts")
+    cur = df.iloc[-1]
+    first = df.iloc[0]
+    days = max((cur["ts"] - first["ts"]).total_seconds()/86400, 0.001)
+
+    legs_perf = {}
+    for leg, w in C.LEG_WEIGHTS.items():
+        nav = (cur["legs"] or {}).get(leg, {}).get("nav", 1.0)
+        legs_perf[leg] = dict(
+            nav=round(nav, 6),
+            pnl_pct=round((nav-1)*100, 3),
+            contrib_usd=round(C.CAPITAL_USD * w * (nav-1), 2),   # 該腿對總資產的貢獻
+        )
+    total_nav = float(cur["total_nav"])
+    equity = float(cur.get("equity_usd", C.CAPITAL_USD*total_nav))
+
+    # 期間報酬
+    def nav_at(hours_ago):
+        cutoff = cur["ts"] - pd.Timedelta(hours=hours_ago)
+        past = df[df["ts"] <= cutoff]
+        return float(past.iloc[-1]["total_nav"]) if len(past) else None
+    d1 = nav_at(24); d7 = nav_at(24*7); d30 = nav_at(24*30)
+
+    return dict(
+        equity_usd=round(equity,2),
+        total_nav=round(total_nav,6),
+        pnl_usd=round(equity - C.CAPITAL_USD, 2),
+        pnl_pct=round((total_nav-1)*100, 3),
+        day_pct=round((total_nav/d1-1)*100,3) if d1 else None,
+        week_pct=round((total_nav/d7-1)*100,3) if d7 else None,
+        month_pct=round((total_nav/d30-1)*100,3) if d30 else None,
+        legs=legs_perf, days=round(days,2), records=len(df),
+        since=str(first["ts"])[:10],
+    )
+
+def equity_curve():
+    """總資產曲線 (供計算MDD/Sharpe)"""
+    df = read_jsonl(NAV_F)
+    if df.empty or "total_nav" not in df.columns: return None
+    df["ts"] = pd.to_datetime(df["ts"])
+    return df.sort_values("ts").set_index("ts")["total_nav"].astype(float)
+
+def drawdown_now():
+    eq = equity_curve()
+    if eq is None or len(eq)<2: return None
+    peak = eq.cummax()
+    dd = (eq/peak - 1)
+    return dict(current=round(float(dd.iloc[-1])*100,2), max=round(float(dd.min())*100,2),
+                underwater_days=int(((dd<-0.001).iloc[::-1].cumprod()).sum()*0+ (0 if dd.iloc[-1]>=-0.001 else
+                    (eq.index[-1]-eq.index[dd[dd>=-0.001].index[-1]]).days if (dd>=-0.001).any() else 0)))
 
 def maker_fill_rate(days=30):
     """從 trades.jsonl 算 maker 成交率 (testnet mode 才有意義)

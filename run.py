@@ -33,12 +33,17 @@ def run_cycle(which):
     print(f"=== {which} cycle @ {datetime.now(timezone.utc).isoformat()} ===")
 
     res = signals.compute_all(only=legs)
-    all_coins = sorted({c for r in res.values() for c in r["pos"]})
-    prices = get_prices(all_coins)
 
     # 記帳: 每腿獨立
     old = book.load_positions()
     new = dict(old)
+
+    # ★幣價必須涵蓋【所有腿】的所有幣, 不只本cycle更新的腿
+    #   因為未更新的腿(如hourly時的A腿/T腿)其部位仍在市場中, PnL照樣要算
+    all_coins = set()
+    for leg_pos in list(old.values()) + [r["pos"] for r in res.values()]:
+        all_coins |= set(leg_pos.keys())
+    prices = get_prices(sorted(all_coins))
     turnovers = {}
     for leg, r in res.items():
         if not r["ok"]:
@@ -86,7 +91,7 @@ def daily_summary():
         today = H[H["ts"] > pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=24)]
         for _, r in today.iterrows():
             alerts_today += (r["records"] or [])
-    notify.send_daily_summary(pos, alerts_today)
+    notify.send_daily_summary(pos, alerts_today, book.performance(), book.drawdown_now())
 
 def monthly():
     print(f"=== monthly check @ {datetime.now(timezone.utc).isoformat()} ===")
