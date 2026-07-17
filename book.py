@@ -26,11 +26,30 @@ def _append(path, obj):
 
 def load_positions():
     """{leg: {coin: 部位(對該腿資金的比例)}}"""
-    return _load(POS_F, {k: {} for k in C.LEG_WEIGHTS})
+    d = _load(POS_F, {k: {} for k in C.LEG_WEIGHTS})
+    return {k: v for k, v in d.items() if k in C.LEG_WEIGHTS}   # 排除 _meta
 
-def save_positions(pos):
+def save_positions(pos, updated_legs=None):
+    """存部位, 並記錄各腿的最後更新時間 (供補跑判斷)"""
+    meta = _load(POS_F, {}).get("_meta", {})
+    now = datetime.now(timezone.utc).isoformat()
+    for leg in (updated_legs or []):
+        meta[leg] = now
+    out = dict(pos); out["_meta"] = meta
     with open(POS_F, "w", encoding="utf-8") as f:
-        json.dump(pos, f, ensure_ascii=False, indent=2)
+        json.dump(out, f, ensure_ascii=False, indent=2)
+
+def leg_age_hours(leg):
+    """該腿距離上次更新幾小時? None=從未更新
+    ★用於補跑: A/T腿若>25h沒更新 (daily workflow掛了或剛啟動), hourly會補上
+    """
+    meta = _load(POS_F, {}).get("_meta", {})
+    ts = meta.get(leg)
+    if not ts: return None
+    try:
+        return (datetime.now(timezone.utc) - datetime.fromisoformat(ts)).total_seconds()/3600
+    except Exception:
+        return None
 
 def record_trades(leg, old, new, prices, ts=None):
     """記錄該腿的部位變化 → 交易明細 (含理論成本)

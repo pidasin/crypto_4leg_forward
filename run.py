@@ -28,15 +28,39 @@ def get_prices(coins):
         if s is not None: px[c] = round(float(s.iloc[-1]), 4)
     return px
 
+def stale_legs(max_age_h=25):
+    """★哪些日級腿過期了? (需要補跑)
+
+    為什麼需要補跑:
+      A/T腿原本只在 UTC 00:10 的 daily workflow 跑。若那次掛掉(API故障/Actions排隊/剛啟動),
+      這兩腿就會停在舊部位等整整24小時 —— 而市場不會等你。
+    為什麼補跑是安全的:
+      A/T腿看的是【日K】, 訊號一天只變一次。錯過00:10在05:00補跑, 算出來的訊號完全一樣。
+    """
+    out = []
+    for leg in DAILY_LEGS:
+        age = book.leg_age_hours(leg)
+        if age is None or age > max_age_h:
+            out.append((leg, age))
+    return out
+
 def run_cycle(which):
-    legs = HOURLY_LEGS if which=="hourly" else DAILY_LEGS
+    legs = list(HOURLY_LEGS if which=="hourly" else DAILY_LEGS)
     print(f"=== {which} cycle @ {datetime.now(timezone.utc).isoformat()} ===")
+
+    # ★hourly 順便檢查日級腿有沒有過期 → 有就補跑 (冷啟動 / daily掛掉時自癒)
+    if which == "hourly":
+        for leg, age in stale_legs():
+            legs.append(leg)
+            why = "從未更新(冷啟動)" if age is None else f"已{age:.1f}h未更新(daily可能掛了)"
+            print(f"  ⏳ 補跑 {leg}腿: {why}")
 
     res = signals.compute_all(only=legs)
 
     # 記帳: 每腿獨立
     old = book.load_positions()
     new = dict(old)
+    updated = []
 
     # ★幣價必須涵蓋【所有腿】的所有幣, 不只本cycle更新的腿
     #   因為未更新的腿(如hourly時的A腿/T腿)其部位仍在市場中, PnL照樣要算
@@ -52,8 +76,9 @@ def run_cycle(which):
         t = book.record_trades(leg, old.get(leg, {}), r["pos"], prices)
         turnovers[leg] = round(t, 4)
         new[leg] = r["pos"]
+        updated.append(leg)
         print(f"  [{leg}] ✅ 部位={ {k:round(v,4) for k,v in r['pos'].items()} } 換手={t:.4f}")
-    book.save_positions(new)
+    book.save_positions(new, updated_legs=updated)
 
     # NAV (paper mode: 記錄部位與價格, 由分析時重建報酬)
     legs_state = {leg: dict(pos=new.get(leg,{}), turnover=turnovers.get(leg,0.0)) for leg in new}
