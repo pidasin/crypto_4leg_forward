@@ -147,13 +147,19 @@ def main():
     dd_svg = line_chart(dd_pts, h=120, color="#f87171", ylabel=f"{cur_dd:.2f}%")
 
     # ---------- 部位表 ----------
+    def fmt_px(v):
+        """價格智慧格式: 大數千分位, 小數保留有效位 (不要科學記號)"""
+        if v >= 1000: return format(v, ",.1f")
+        if v >= 1:    return format(v, ",.2f")
+        return f"{v:.4f}"
+
     rows = []
     for p in sorted(cur.get("positions", []), key=lambda x: -x["notional"]):
         side = "多" if p["amt"] > 0 else "空"
         sc = "pos" if p["amt"] > 0 else "neg"
         uc = "pos" if p["upnl"] >= 0 else "neg"
         rows.append(f'<tr><td><b>{p["coin"]}</b></td><td class="{sc}">{side}</td>'
-                    f'<td>${p["notional"]:,.0f}</td><td>{p["entry"]:,.4g}</td>'
+                    f'<td>${p["notional"]:,.0f}</td><td>{fmt_px(p["entry"])}</td>'
                     f'<td class="{uc}">{money(p["upnl"])}</td></tr>')
     pos_table = (f'<table><tr><th>幣</th><th>方向</th><th>名目</th><th>進場價</th><th>未實現</th></tr>'
                  f'{"".join(rows)}</table>') if rows else '<div class="empty">無部位</div>'
