@@ -11,6 +11,16 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - run: pip install requests
+      - name: 端點探測 (哪些幣安服務擋美國IP?)
+        run: |
+          for u in \
+            "https://data-api.binance.vision/api/v3/ping" \
+            "https://api.binance.com/api/v3/ping" \
+            "https://demo-api.binance.com/api/v3/ping" \
+            "https://testnet.binance.vision/api/v3/ping" ; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 12 "$u")
+            echo "$code  $u"
+          done
       - name: Demo Trading 連線測試
         env:
           BINANCE_DEMO_KEY: ${{ secrets.BINANCE_DEMO_KEY }}
