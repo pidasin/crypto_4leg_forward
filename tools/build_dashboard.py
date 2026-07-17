@@ -184,6 +184,121 @@ def main():
     leg_table = (f'<table><tr><th>腿</th><th>淨部位</th><th>paper損益</th><th>明細</th><th>更新</th></tr>'
                  f'{"".join(leg_rows)}</table>')
 
+    # ========== 健康度監控 (機制, 不是績效) ==========
+    try:
+        sd = json.load(open(os.path.join(ROOT, "state", "signals_diag.json"), encoding="utf-8"))
+    except Exception:
+        sd = {}
+
+    # ---- 判決時鐘 ----
+    months = C.months_running()
+    prog = min(months / 18 * 100, 100)
+    clock_html = f"""
+<div class="clock"><div class="clockbar"><div class="clockfill" style="width:{prog:.1f}%"></div>
+<div class="ck" style="left:33.3%"><span>6月</span></div>
+<div class="ck" style="left:66.7%"><span>12月</span></div>
+<div class="ck" style="left:99.7%"><span>18月</span></div></div>
+<div class="sm" style="margin-top:14px">已運行 <b>{months:.2f}</b> 個月 ·
+6月=只看有沒有壞掉 · 12月=正式判決 (Sharpe&gt;{C.LAYER3["sharpe_survive"]}續命 / &lt;{C.LAYER3["sharpe_kill"]}處決) · 判準已寫死不可事後修改</div></div>"""
+
+    # ---- 各腿生命徵象卡 ----
+    def leg_diag(leg): return (sd.get(leg) or {}).get("diag", {})
+    def vital(label, val, ok=True, sub=""):
+        cls = "" if ok is None else ("vok" if ok else "vbad")
+        return f'<div class="vital {cls}"><span class="vl">{label}</span><span class="vv">{val}</span>{f"<span class=vs>{sub}</span>" if sub else ""}</div>'
+
+    pd_ = leg_diag("premium")
+    prem_stds = [v.get("prem_std") for v in pd_.values() if isinstance(v, dict) and v.get("prem_std") is not None]
+    prem_std = max(prem_stds) if prem_stds else None
+    prem_zs = {k: v.get("z") for k, v in pd_.items() if isinstance(v, dict) and v.get("z") is not None}
+    dd_ = leg_diag("dvol")
+    ad_ = leg_diag("aleg")
+    fng_vals = [v for v in [ad_.get(c, {}).get("fng") if isinstance(ad_.get(c), dict) else None for c in ["BTC"]] if v is not None]
+    fng_v = fng_vals[0] if fng_vals else None
+    td_ = leg_diag("tleg")
+    t_above = sum(1 for v in td_.values() if isinstance(v, dict) and v.get("above"))
+    t_total = sum(1 for v in td_.values() if isinstance(v, dict) and "above" in v)
+
+    legs_health = f"""
+<div class="hgrid">
+<div class="hcard"><div class="ht">🟦 溢價腿 <span class="sm">擇時·非套利</span></div>
+{vital("溢價std", f"{prem_std}bp" if prem_std is not None else "—", (prem_std or 0) <= C.LAYER2["premium_std_high"], f"警戒>{C.LAYER2['premium_std_high']}bp·變小=健康")}
+{"".join(vital(f"z {k}", f"{v:+.2f}", abs(v or 0) < 1.9, "貼±2=釘住" if abs(v or 0) >= 1.9 else "") for k, v in prem_zs.items())}</div>
+<div class="hcard"><div class="ht">🟨 DVOL腿 <span class="sm">恐慌=買</span></div>
+{vital("DVOL", dd_.get("dvol", "—"))}
+{vital("z", f"{dd_.get('z', 0):+.2f}" if dd_.get("z") is not None else "—", abs(dd_.get("z") or 0) < 1.9)}
+{vital("資料", "⚠️降級(備援)" if dd_.get("degraded") else "官方正常", not dd_.get("degraded"))}
+{vital("特別條款", "BTC週跌>15%而本腿沒賺→立即處決", None)}</div>
+<div class="hcard"><div class="ht">🟩 A腿 <span class="ht_sm"></span><span class="sm">CB×FNG四象限</span></div>
+{vital("FNG", f"{fng_v} ({'貪婪' if (fng_v or 0) > C.ALEG['fng_threshold'] else '平淡'})" if fng_v is not None else "—", fng_v is not None, "alternative.me·最脆弱資料源")}
+{vital("狀態", "⚠️降級(純CB多空 Sh0.96)" if ad_.get("degraded") else "四象限正常", not ad_.get("degraded"))}</div>
+<div class="hcard"><div class="ht">🟥 T腿 <span class="sm">⚠️觀察中(ETF後1.78→0.58)</span></div>
+{vital("SMA50上方", f"{t_above}/{t_total} 幣" if t_total else "—", None)}
+{vital("判準", "forward持續<0.3→12月砍", None)}</div>
+</div>"""
+
+    # ---- 資料源狀態 ----
+    feeds = sd.get("datafeed", {})
+    KNOWN = [("coinbase_", "Coinbase", "溢價腿+A腿的分子"), ("binance_", "幣安行情", "全部腿的價格基準"),
+             ("deribit", "Deribit DVOL", "DVOL腿·有選擇權鏈備援"), ("fng", "FNG (alternative.me)", "A腿·掛了自動降級純CB")]
+    feed_rows = []
+    for prefix, name, role in KNOWN:
+        recs = [v for k, v in feeds.items() if k.startswith(prefix)]
+        if not recs:
+            feed_rows.append(f'<tr><td>{name}</td><td>—</td><td class="sm">尚無記錄</td><td class="sm">{role}</td></tr>'); continue
+        ok = all(r.get("ok") for r in recs)
+        ages = [r.get("age_hours") for r in recs if r.get("age_hours") is not None]
+        age_s = f"{max(ages):.1f}h前" if ages else "—"
+        st = "✅" if ok else "🔴"
+        feed_rows.append(f'<tr><td>{name}</td><td>{st}</td><td class="sm">{age_s}</td><td class="sm">{role}</td></tr>')
+    feed_table = f'<table><tr><th>來源</th><th>狀態</th><th>最新資料</th><th>角色</th></tr>{"".join(feed_rows)}</table>'
+
+    # ---- 腿間相關性 (30天滾動, 從paper逐時報酬) ----
+    LEG_ORDER = ["premium", "dvol", "aleg", "tleg"]
+    SHORT = {"premium": "溢價", "dvol": "DVOL", "aleg": "A腿", "tleg": "T腿"}
+    series = {l: [] for l in LEG_ORDER}
+    for n in navs[-720:]:
+        for l in LEG_ORDER:
+            series[l].append((n.get("legs", {}).get(l) or {}).get("pnl_pct", 0.0))
+    def corr(a, b):
+        n = len(a)
+        if n < 72: return None
+        ma, mb2 = sum(a)/n, sum(b)/n
+        va = sum((x-ma)**2 for x in a); vb = sum((x-mb2)**2 for x in b)
+        if va <= 0 or vb <= 0: return None
+        return sum((a[i]-ma)*(b[i]-mb2) for i in range(n)) / (va*vb) ** 0.5
+    corr_cells, max_corr = [], 0.0
+    for i, l1 in enumerate(LEG_ORDER):
+        row = [f"<td class='sm'><b>{SHORT[l1]}</b></td>"]
+        for j, l2 in enumerate(LEG_ORDER):
+            if j <= i: row.append("<td></td>"); continue
+            c = corr(series[l1], series[l2])
+            if c is None: row.append('<td class="sm">…</td>')
+            else:
+                max_corr = max(max_corr, abs(c))
+                cls = "neg" if abs(c) > C.LAYER2["leg_corr_max"] else ("sm" if abs(c) < 0.3 else "")
+                row.append(f'<td class="{cls}">{c:+.2f}</td>')
+        corr_cells.append("<tr>" + "".join(row) + "</tr>")
+    hdr = "".join(f"<th>{SHORT[l]}</th>" for l in LEG_ORDER)
+    n_pts = len(series["premium"])
+    corr_note = f'需72筆起算 (目前{n_pts}筆)' if n_pts < 72 else f'警戒>{C.LAYER2["leg_corr_max"]} · 回測基準0.002~0.31 · 同時升高=分散失效'
+    corr_table = f'<table><tr><th></th>{hdr}</tr>{"".join(corr_cells)}</table><div class="sm" style="margin-top:6px">{corr_note}</div>'
+
+    # ---- 失效模式監控表 ----
+    def fm(name, status, detect, cls=""):
+        return f'<tr><td><b>{name}</b></td><td class="{cls}">{status}</td><td class="sm">{detect}</td></tr>'
+    fng_ok = fng_v is not None
+    fail_rows = [
+        fm("④ 贏家詛咒", "已確定·已定價", "40+家族挑4條 → 預期打折至Sh1.45, 別看回測2.10"),
+        fm("⑤ 資料源消失", "✅ 全部在線" if (fng_ok and not dd_.get("degraded")) else "⚠️ 有降級", "上表資料源狀態 · FNG掛→純CB / DVOL掛→選擇權鏈自算", "" if (fng_ok and not dd_.get("degraded")) else "neg"),
+        fm("⑥ 溢價訊號", f"std {prem_std}bp" if prem_std is not None else "—", f"警戒>{C.LAYER2['premium_std_high']}bp (高std=混亂期才危險; 變小=健康, 實測<4bp區Sh1.56)", "" if (prem_std or 0) <= C.LAYER2["premium_std_high"] else "neg"),
+        fm("⑦ T腿衰減", "觀察中", "ETF後1.78→0.58 · forward<0.3持續→12月砍"),
+        fm("⑧ 腿間相關飆升", f"max {max_corr:.2f}" if n_pts >= 72 else "累積中", f"任一對>{C.LAYER2['leg_corr_max']}=變成同一個賭注", "" if max_corr <= C.LAYER2["leg_corr_max"] else "neg"),
+        fm("⑨ 交易所倒閉", "只能防範", "FTX前例·真錢階段: 定期提領獲利, 不押身家"),
+        fm("⑩ 我們自己的錯", "✅ 對帳通過" if recon_ok else "🔴 對帳異常", "帳面vs測試網實際逐幣對帳 · 偏差>$25=水管在漏", "" if recon_ok else "neg"),
+    ]
+    fail_table = f'<table><tr><th>失效模式</th><th>狀態</th><th>偵測/應對</th></tr>{"".join(fail_rows)}</table>'
+
     # ---------- 最近成交 ----------
     trows = []
     for o in list(reversed(ok_orders))[:15]:
@@ -223,6 +338,20 @@ tr:last-child td{{border:none}}
 .empty{{background:#171a23;border-radius:10px;padding:24px;text-align:center;color:#6b7280;font-size:13px}}
 .note{{background:#1c1f2a;border-radius:10px;padding:12px;font-size:12px;color:#9ca3af;line-height:1.7;margin-top:20px}}
 .foot{{color:#4b5563;font-size:11px;text-align:center;margin:18px 0 8px}}
+.clock{{background:#171a23;border-radius:10px;padding:16px 12px 10px}}
+.clockbar{{position:relative;height:10px;background:#2a2f3a;border-radius:5px}}
+.clockfill{{height:100%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);border-radius:5px}}
+.ck{{position:absolute;top:-3px;width:2px;height:16px;background:#6b7280}}
+.ck span{{position:absolute;top:18px;left:-12px;font-size:10px;color:#6b7280}}
+.hgrid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:8px}}
+.hcard{{background:#171a23;border-radius:10px;padding:10px}}
+.ht{{font-size:13px;font-weight:700;margin-bottom:6px}}
+.vital{{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;padding:3px 0;border-bottom:1px solid #1f2430;font-size:12px}}
+.vital:last-child{{border:none}}
+.vl{{color:#6b7280}}
+.vv{{font-weight:600}}
+.vs{{width:100%;font-size:10px;color:#4b5563}}
+.vital.vok .vv{{color:#4ade80}}.vital.vbad .vv{{color:#f87171}}
 </style></head><body>
 <h1>四腿 forward — 合約測試網模擬金</h1>
 <div class="big" style="color:{pnl_color}">${equity:,.2f}</div>
@@ -232,6 +361,11 @@ tr:last-child td{{border:none}}
 <h2>回撤</h2>{dd_svg}
 <h2>測試網實際部位 ({len(cur.get("positions", []))})</h2>{pos_table}
 <h2>四腿帳面 (paper)</h2>{leg_table}
+<h2>⏳ 判決時鐘</h2>{clock_html}
+<h2>🩺 各腿生命徵象 <span class="sm">(機制監控, 比績效早發警訊)</span></h2>{legs_health}
+<h2>📡 資料源</h2>{feed_table}
+<h2>🔗 腿間相關性 (30天)</h2>{corr_table}
+<h2>☠️ 失效模式監控</h2>{fail_table}
 <h2>最近成交</h2>{trade_table}
 <div class="note">⚠️ <b>這是水管的數字, 不是策略的數字</b>: 測試網用market單(taker費+合成簿滑價),
 損益會系統性差於paper帳面。評估策略看paper; 這頁看的是「下單/對帳有沒有正常運作」和大致盈虧。<br>

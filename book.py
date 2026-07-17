@@ -13,6 +13,7 @@ POS_F   = os.path.join(STATE, "positions.json")
 TRADE_F = os.path.join(STATE, "trades.jsonl")
 NAV_F   = os.path.join(STATE, "nav.jsonl")
 HEALTH_F= os.path.join(STATE, "health.jsonl")
+DIAG_F  = os.path.join(STATE, "signals_diag.json")
 
 def _load(path, default):
     if not os.path.exists(path): return default
@@ -128,6 +129,23 @@ def record_nav(legs_state, prices, ts=None):
     _append(NAV_F, dict(ts=ts, legs=legs_state, prices=prices,
                         total_nav=round(total_nav, 8),
                         equity_usd=round(C.CAPITAL_USD * total_nav, 2)))
+
+def save_diag(res, datafeed_records=None, ts=None):
+    """★持久化訊號診斷值 → 儀表板的「腿健康度」資料來源
+    每腿只在本cycle有更新時覆寫 (hourly不會洗掉daily腿的診斷);
+    資料源記錄按source合併, 保留各自最後一次的狀態。
+    """
+    ts = ts or datetime.now(timezone.utc).isoformat()
+    d = _load(DIAG_F, {})
+    for leg, r in (res or {}).items():
+        d[leg] = dict(ts=ts, ok=r.get("ok", False), diag=r.get("diag", {}))
+    if datafeed_records:
+        feeds = d.get("datafeed", {})
+        for rec in datafeed_records:
+            feeds[rec["source"]] = dict(ts=ts, **rec)
+        d["datafeed"] = feeds
+    with open(DIAG_F, "w", encoding="utf-8") as f:
+        json.dump(d, f, ensure_ascii=False, indent=1)
 
 def record_health(records, layer, ts=None):
     ts = ts or datetime.now(timezone.utc).isoformat()

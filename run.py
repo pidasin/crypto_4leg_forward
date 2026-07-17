@@ -100,6 +100,7 @@ def run_cycle(which):
 
     # 🔴 第一層
     dh = D.health_report()
+    book.save_diag(res, dh)          # ★持久化診斷 → 儀表板腿健康度
     a1 = checks.layer1(dh, res)
     book.record_health([dict(a) for a in a1], "layer1")
     _report(a1, res, which)
