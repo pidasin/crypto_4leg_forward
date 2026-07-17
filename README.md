@@ -239,3 +239,24 @@ A腿抓 8幣 × 200天日K 要 **128次請求**,修正後只要 **8次**。daily
 
 GitHub Actions 的 cron 在高峰期可能**延遲 5-15 分鐘,甚至跳過**。
 對這個策略不致命(訊號變化慢、持倉 2.2-4.8天),但別期待它每小時整點執行。
+
+## 🔴 事故簿
+
+### 2026-07-17 — 本機 push 洗掉 bot 的 forward 記錄
+
+**發生什麼**:本機為了測冷啟動把 `state/` 清空,commit 時 `git add -A` 把「刪除」也一起 push
+(`d01c5fa`)。bot 在 09:48 存的溢價/DVOL 部位、nav、trades 全被靜靜刪除。
+
+**怎麼發現的**:測試 Discord 日報時,看到日報寫「🟦溢價 ⚠️ 無部位」。**不是靠警報,是靠肉眼。**
+
+**修正**:裝了 `.git/hooks/pre-commit`,本機 commit 到 `state/` 一律擋下。
+GitHub Actions 不跑 hook → bot 照常能 commit。
+
+**教訓**:這跟「workflow 權限是 read」是同一類 ——
+**forward track 的全部價值在累積記錄裡,而它們可以被無聲毀掉,沒有任何警報會響。**
+程式碼壞了會噴錯;記錄被刪只會安靜地變成一張白紙,然後 12 個月後你拿它去做判決。
+
+### 本機規矩
+
+- `state/` 只屬於 bot。本機要測就測,但**不要 commit**(hook 會擋)。
+- 真的要動(極少數):`git commit --no-verify`,並在此記一筆。
