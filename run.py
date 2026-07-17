@@ -75,6 +75,19 @@ def _report(alerts, res=None, which=""):
     if crit or warn:
         notify.send_alerts(alerts, which)
 
+def daily_summary():
+    """📅 每日摘要 — 在daily cycle之後發, 一天一次"""
+    pos = book.load_positions()
+    # 讀今天的健康記錄
+    H = book.read_jsonl(book.HEALTH_F)
+    alerts_today = []
+    if not H.empty:
+        H["ts"] = pd.to_datetime(H["ts"])
+        today = H[H["ts"] > pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=24)]
+        for _, r in today.iterrows():
+            alerts_today += (r["records"] or [])
+    notify.send_daily_summary(pos, alerts_today)
+
 def monthly():
     print(f"=== monthly check @ {datetime.now(timezone.utc).isoformat()} ===")
     res = signals.compute_all()
@@ -126,7 +139,11 @@ def status():
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv)>1 else "status"
-    if cmd in ("hourly","daily"): run_cycle(cmd)
+    if cmd == "hourly": run_cycle("hourly")
+    elif cmd == "daily":
+        run_cycle("daily")
+        daily_summary()          # ★每天一次的摘要 (你平常唯一會收到的東西)
+    elif cmd == "summary": daily_summary()
     elif cmd=="monthly": monthly()
     elif cmd=="judge": judge()
     else: status()
