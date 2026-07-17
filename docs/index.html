@@ -1,1 +1,44 @@
-<meta http-equiv='refresh' content='0'>
+<!DOCTYPE html>
+<html lang="zh-Hant"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="300">
+<title>四腿 forward 模擬金</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f1117;color:#e5e7eb;font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;padding:14px;max-width:760px;margin:0 auto}
+h1{font-size:17px;color:#9ca3af;font-weight:600}
+.big{font-size:40px;font-weight:800;margin:2px 0;letter-spacing:-1px}
+.sub{color:#9ca3af;font-size:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px;margin:14px 0}
+.card{background:#171a23;border-radius:10px;padding:10px}
+.cl{color:#6b7280;font-size:11px}
+.cv{font-size:16px;font-weight:700;margin-top:2px}
+.cs{color:#6b7280;font-size:10px;margin-top:1px}
+.card.pos .cv{color:#4ade80}.card.neg .cv{color:#f87171}
+h2{font-size:14px;color:#9ca3af;margin:20px 0 8px;border-left:3px solid #3b4252;padding-left:8px}
+.chart{width:100%;height:auto;background:#171a23;border-radius:10px}
+table{width:100%;border-collapse:collapse;background:#171a23;border-radius:10px;overflow:hidden;font-size:13px}
+th{color:#6b7280;font-size:11px;text-align:left;padding:8px;border-bottom:1px solid #2a2f3a}
+td{padding:8px;border-bottom:1px solid #1f2430}
+tr:last-child td{border:none}
+.pos{color:#4ade80}.neg{color:#f87171}.sm{font-size:11px;color:#9ca3af}
+.empty{background:#171a23;border-radius:10px;padding:24px;text-align:center;color:#6b7280;font-size:13px}
+.note{background:#1c1f2a;border-radius:10px;padding:12px;font-size:12px;color:#9ca3af;line-height:1.7;margin-top:20px}
+.foot{color:#4b5563;font-size:11px;text-align:center;margin:18px 0 8px}
+</style></head><body>
+<h1>四腿 forward — 合約測試網模擬金</h1>
+<div class="big" style="color:#4ade80">$5,000.00</div>
+<div class="sub">+0.00 (+0.00%) · 更新 2026-07-17 23:10 台北 · 每小時更新</div>
+<div class="empty">資料累積中… (目前 0 筆, 每小時+1)</div>
+<div class="grid"><div class="card "><div class="cl">錢包(已實現)</div><div class="cv">$5,000.00</div><div class="cs"></div></div><div class="card pos"><div class="cl">未實現損益</div><div class="cv">+0.00</div><div class="cs"></div></div><div class="card pos"><div class="cl">今日</div><div class="cv">—</div><div class="cs"></div></div><div class="card pos"><div class="cl">7日</div><div class="cv">—</div><div class="cs"></div></div><div class="card pos"><div class="cl">30日</div><div class="cv">—</div><div class="cs"></div></div><div class="card "><div class="cl">目前回撤</div><div class="cv">0.00%</div><div class="cs">最深 0.00%</div></div><div class="card "><div class="cl">總曝險</div><div class="cv">$0</div><div class="cs">槓桿 0.00x</div></div><div class="card "><div class="cl">成交</div><div class="cv">8 筆</div><div class="cs">拒單 0</div></div><div class="card "><div class="cl">手續費(taker估)</div><div class="cv">$2.14</div><div class="cs">0.043%</div></div><div class="card "><div class="cl">運行</div><div class="cv">0.0 天</div><div class="cs">快照 0 筆</div></div><div class="card "><div class="cl">對帳</div><div class="cv">✅ 通過</div><div class="cs">偏差 $1.06</div></div></div>
+<h2>回撤</h2><div class="empty">資料累積中… (目前 0 筆, 每小時+1)</div>
+<h2>測試網實際部位 (0)</h2><div class="empty">無部位</div>
+<h2>四腿帳面 (paper)</h2><table><tr><th>腿</th><th>淨部位</th><th>paper損益</th><th>明細</th><th>更新</th></tr><tr><td>🟦 <b>溢價腿</b></td><td class="pos">+0.33</td><td class="neg">-0.09%</td><td class="sm">BTC+0.18 ETH+0.15</td><td class="sm">07/17 22:39</td></tr><tr><td>🟨 <b>DVOL腿</b></td><td class="neg">-0.58</td><td class="neg">-0.09%</td><td class="sm">BTC-0.58</td><td class="sm">07/17 22:39</td></tr><tr><td>🟩 <b>A腿</b></td><td class="neg">-1.00</td><td class="neg">-0.09%</td><td class="sm">BTC-0.12 ETH-0.12 SOL-0.12 LTC-0.12 +4</td><td class="sm">07/17 18:56</td></tr><tr><td>🟥 <b>T腿</b></td><td class="pos">+0.67</td><td class="neg">-0.37%</td><td class="sm">ETH+0.33 SOL+0.33 BTC+0.00</td><td class="sm">07/17 18:56</td></tr></table>
+<h2>最近成交</h2><table><tr><th>時間(台)</th><th>幣</th><th>方向</th><th>數量</th><th>名目</th></tr><tr><td class="sm">07/17 22:39</td><td><b>XLM</b></td><td class="neg">賣</td><td>1673.0</td><td>$312</td></tr><tr><td class="sm">07/17 22:39</td><td><b>SOL</b></td><td class="pos">買</td><td>6.97</td><td>$521</td></tr><tr><td class="sm">07/17 22:39</td><td><b>LTC</b></td><td class="neg">賣</td><td>7.005</td><td>$312</td></tr><tr><td class="sm">07/17 22:39</td><td><b>LINK</b></td><td class="neg">賣</td><td>38.42</td><td>$312</td></tr><tr><td class="sm">07/17 22:39</td><td><b>ETH</b></td><td class="pos">買</td><td>0.489</td><td>$892</td></tr><tr><td class="sm">07/17 22:39</td><td><b>DOGE</b></td><td class="neg">賣</td><td>4342.0</td><td>$312</td></tr><tr><td class="sm">07/17 22:39</td><td><b>BTC</b></td><td class="neg">賣</td><td>0.0206</td><td>$1,301</td></tr><tr><td class="sm">07/17 22:39</td><td><b>ADA</b></td><td class="neg">賣</td><td>1931.0</td><td>$312</td></tr></table>
+<div class="note">⚠️ <b>這是水管的數字, 不是策略的數字</b>: 測試網用market單(taker費+合成簿滑價),
+損益會系統性差於paper帳面。評估策略看paper; 這頁看的是「下單/對帳有沒有正常運作」和大致盈虧。<br>
+誠實預期 Sharpe 1.45 · 預期MDD -24.6% ·
+預期最長套牢 214天 — 虧損期是預期內的, 判決在12個月。</div>
+<div class="foot">paper起算 2026-07-17 · 模式 paper · 本金基準 $5,000</div>
+</body></html>
