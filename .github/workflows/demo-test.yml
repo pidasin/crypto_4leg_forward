@@ -17,7 +17,8 @@ jobs:
             "https://data-api.binance.vision/api/v3/ping" \
             "https://api.binance.com/api/v3/ping" \
             "https://demo-api.binance.com/api/v3/ping" \
-            "https://testnet.binance.vision/api/v3/ping" ; do
+            "https://testnet.binance.vision/api/v3/ping" \
+            "https://testnet.binancefuture.com/fapi/v1/ping" ; do
             code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 12 "$u")
             echo "$code  $u"
           done
