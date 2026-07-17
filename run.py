@@ -1,0 +1,132 @@
+# -*- coding: utf-8 -*-
+"""主執行入口
+用法:
+  python run.py hourly    # 每小時: 溢價腿 + DVOL腿 + 第一層檢查
+  python run.py daily     # 每日:   A腿 + T腿 + 第一層檢查 + NAV記錄
+  python run.py monthly   # 每月:   第二層檢查
+  python run.py judge     # 判決:   第三層 (12/18個月)
+  python run.py status    # 看目前狀態
+"""
+import sys, os, json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import numpy as np, pandas as pd
+from datetime import datetime, timezone
+import config as C
+import datafeed as D
+import book
+from legs import signals
+from health import checks
+import notify
+
+HOURLY_LEGS = ["premium", "dvol"]
+DAILY_LEGS  = ["aleg", "tleg"]
+
+def get_prices(coins):
+    px = {}
+    for c in coins:
+        s = D.binance_klines(c+"USDT", "1h", 2)
+        if s is not None: px[c] = round(float(s.iloc[-1]), 4)
+    return px
+
+def run_cycle(which):
+    legs = HOURLY_LEGS if which=="hourly" else DAILY_LEGS
+    print(f"=== {which} cycle @ {datetime.now(timezone.utc).isoformat()} ===")
+
+    res = signals.compute_all(only=legs)
+    all_coins = sorted({c for r in res.values() for c in r["pos"]})
+    prices = get_prices(all_coins)
+
+    # 記帳: 每腿獨立
+    old = book.load_positions()
+    new = dict(old)
+    turnovers = {}
+    for leg, r in res.items():
+        if not r["ok"]:
+            print(f"  [{leg}] ❌ {r['diag'].get('error','無訊號')} → 維持原部位")
+            continue
+        t = book.record_trades(leg, old.get(leg, {}), r["pos"], prices)
+        turnovers[leg] = round(t, 4)
+        new[leg] = r["pos"]
+        print(f"  [{leg}] ✅ 部位={ {k:round(v,4) for k,v in r['pos'].items()} } 換手={t:.4f}")
+    book.save_positions(new)
+
+    # NAV (paper mode: 記錄部位與價格, 由分析時重建報酬)
+    legs_state = {leg: dict(pos=new.get(leg,{}), turnover=turnovers.get(leg,0.0)) for leg in new}
+    book.record_nav(legs_state, prices)
+
+    # 🔴 第一層
+    dh = D.health_report()
+    a1 = checks.layer1(dh, res)
+    book.record_health([dict(a) for a in a1], "layer1")
+    _report(a1, res, which)
+    return res, a1
+
+def _report(alerts, res=None, which=""):
+    crit = [a for a in alerts if a["level"]=="CRITICAL"]
+    warn = [a for a in alerts if a["level"]=="WARN"]
+    if crit:
+        print(f"\n🔴 {len(crit)} 個 CRITICAL:")
+        for a in crit: print(f"   • {a['msg']}\n     → {a['action']}")
+    if warn:
+        print(f"\n🟡 {len(warn)} 個 WARN:")
+        for a in warn: print(f"   • {a['msg']}")
+    if not crit and not warn:
+        print("\n✅ 第一層全數通過")
+    if crit or warn:
+        notify.send_alerts(alerts, which)
+
+def monthly():
+    print(f"=== monthly check @ {datetime.now(timezone.utc).isoformat()} ===")
+    res = signals.compute_all()
+    a2 = checks.layer2(res)
+    book.record_health([dict(a) for a in a2], "layer2")
+    if a2:
+        for a in a2: print(f"  [{a['level']}] {a['msg']}\n     → {a['action']}")
+        notify.send_alerts(a2, "monthly")
+    else:
+        print("  ✅ 第二層全數通過 (訊號健康)")
+    return a2
+
+def judge():
+    print(f"=== 第三層判決 @ 運行 {C.months_running():.1f} 個月 ===")
+    a3 = checks.layer3()
+    book.record_health([dict(a) for a in a3], "layer3")
+    for a in a3: print(f"  {a['msg']}\n     {a.get('action','')}")
+    if a3: notify.send_alerts(a3, "judge")
+    return a3
+
+def status():
+    m = C.months_running()
+    pos = book.load_positions()
+    R = book.leg_returns()
+    print("="*66)
+    print(f"四腿 forward track — 已運行 {m:.2f} 個月 (自 {C.START_DATE})")
+    print("="*66)
+    print(f"\n模式: {C.MODE}   名目本金: ${C.CAPITAL_USD:,.0f}")
+    print(f"誠實預期: Sharpe {C.HONEST['honest_sharpe']} (回測{C.HONEST['backtest_sharpe']}, 已打折)")
+    print(f"  {C.HONEST['note']}")
+    print(f"\n【當前部位】(對各腿資金的比例)")
+    for leg, p in pos.items():
+        if p: print(f"  {leg:8} {json.dumps({k:round(v,4) for k,v in p.items()}, ensure_ascii=False)}")
+        else: print(f"  {leg:8} (無部位)")
+    print(f"\n【下一個檢查點】")
+    for name, mo in [("6個月(只看有沒有壞掉)", C.LAYER3["checkpoint_1_months"]),
+                     ("12個月(第一次正式判決)", C.LAYER3["checkpoint_2_months"]),
+                     ("18個月(灰色地帶延長賽)", C.LAYER3["checkpoint_3_months"])]:
+        left = mo - m
+        print(f"  {name:26} {'✅ 已到' if left<=0 else f'還有 {left:.1f} 個月'}")
+    tr = book.read_jsonl(book.TRADE_F)
+    print(f"\n【累計】交易 {len(tr)} 筆   NAV記錄 {len(book.read_jsonl(book.NAV_F))} 筆")
+    if not R.empty and len(R)>30:
+        print(f"\n【各腿forward表現】(僅供參考, 12個月前不做判決)")
+        for leg in R.columns:
+            s=R[leg].dropna()
+            if len(s)>30 and s.std()>0:
+                print(f"  {leg:8} Sharpe {s.mean()/s.std()*np.sqrt(365):+.2f}")
+
+if __name__ == "__main__":
+    cmd = sys.argv[1] if len(sys.argv)>1 else "status"
+    if cmd in ("hourly","daily"): run_cycle(cmd)
+    elif cmd=="monthly": monthly()
+    elif cmd=="judge": judge()
+    else: status()
