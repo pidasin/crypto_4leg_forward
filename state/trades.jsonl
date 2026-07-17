@@ -1,0 +1,10 @@
+{"ts": "2026-07-17T10:56:43.613424+00:00", "leg": "aleg", "coin": "ETH", "side": "SELL", "delta": -0.125, "old": 0.0, "new": -0.125, "price": 1838.22, "notional_usd": 312.5, "fee_maker_usd": 0.0625, "mode": "paper"}
+{"ts": "2026-07-17T10:56:43.613424+00:00", "leg": "aleg", "coin": "LINK", "side": "SELL", "delta": -0.125, "old": 0.0, "new": -0.125, "price": 8.2, "notional_usd": 312.5, "fee_maker_usd": 0.0625, "mode": "paper"}
+{"ts": "2026-07-17T10:56:43.613424+00:00", "leg": "aleg", "coin": "ADA", "side": "SELL", "delta": -0.125, "old": 0.0, "new": -0.125, "price": 0.1612, "notional_usd": 312.5, "fee_maker_usd": 0.0625, "mode": "paper"}
+{"ts": "2026-07-17T10:56:43.613424+00:00", "leg": "aleg", "coin": "LTC", "side": "SELL", "delta": -0.125, "old": 0.0, "new": -0.125, "price": 44.58, "notional_usd": 312.5, "fee_maker_usd": 0.0625, "mode": "paper"}
+{"ts": "2026-07-17T10:56:43.613424+00:00", "leg": "aleg", "coin": "BTC", "side": "SELL", "delta": -0.125, "old": 0.0, "new": -0.125, "price": 63190.61, "notional_usd": 312.5, "fee_maker_usd": 0.0625, "mode": "paper"}
+{"ts": "2026-07-17T10:56:43.613424+00:00", "leg": "aleg", "coin": "XLM", "side": "SELL", "delta": -0.125, "old": 0.0, "new": -0.125, "price": 0.1839, "notional_usd": 312.5, "fee_maker_usd": 0.0625, "mode": "paper"}
+{"ts": "2026-07-17T10:56:43.613424+00:00", "leg": "aleg", "coin": "DOGE", "side": "SELL", "delta": -0.125, "old": 0.0, "new": -0.125, "price": 0.072, "notional_usd": 312.5, "fee_maker_usd": 0.0625, "mode": "paper"}
+{"ts": "2026-07-17T10:56:43.613424+00:00", "leg": "aleg", "coin": "SOL", "side": "SELL", "delta": -0.125, "old": 0.0, "new": -0.125, "price": 74.84, "notional_usd": 312.5, "fee_maker_usd": 0.0625, "mode": "paper"}
+{"ts": "2026-07-17T10:56:43.614012+00:00", "leg": "tleg", "coin": "ETH", "side": "BUY", "delta": 0.333333, "old": 0.0, "new": 0.333333, "price": 1838.22, "notional_usd": 833.33, "fee_maker_usd": 0.1667, "mode": "paper"}
+{"ts": "2026-07-17T10:56:43.614012+00:00", "leg": "tleg", "coin": "SOL", "side": "BUY", "delta": 0.333333, "old": 0.0, "new": 0.333333, "price": 74.84, "notional_usd": 833.33, "fee_maker_usd": 0.1667, "mode": "paper"}
