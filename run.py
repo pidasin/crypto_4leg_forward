@@ -84,6 +84,20 @@ def run_cycle(which):
     legs_state = {leg: dict(pos=new.get(leg,{}), turnover=turnovers.get(leg,0.0)) for leg in new}
     book.record_nav(legs_state, prices)
 
+    # 🔧 測試網同步 (水管演練) — 任何失敗都不能影響paper track
+    try:
+        import testnet_exec as TX
+        if TX.enabled():
+            tx = TX.sync(new)
+            if tx["orders"]:
+                print(f"  🔧 測試網下單: {', '.join(tx['orders'])}")
+            if tx["ok"]:
+                print(f"  🔧 測試網對帳 ✅ 最大偏差 ${tx['max_diff_usd']}")
+            else:
+                print(f"  🔧 測試網對帳 🔴 {tx.get('errors') or ('偏差$%s' % tx.get('max_diff_usd'))}")
+    except Exception as e:
+        print(f"  🔧 測試網執行失敗(不影響paper): {e}")
+
     # 🔴 第一層
     dh = D.health_report()
     a1 = checks.layer1(dh, res)
@@ -116,7 +130,13 @@ def daily_summary():
         today = H[H["ts"] > pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=24)]
         for _, r in today.iterrows():
             alerts_today += (r["records"] or [])
-    notify.send_daily_summary(pos, alerts_today, book.performance(), book.drawdown_now())
+    extra = None
+    try:
+        import testnet_exec as TX
+        extra = TX.recon_line()
+    except Exception:
+        pass
+    notify.send_daily_summary(pos, alerts_today, book.performance(), book.drawdown_now(), extra=extra)
 
 def monthly():
     print(f"=== monthly check @ {datetime.now(timezone.utc).isoformat()} ===")

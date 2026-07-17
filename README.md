@@ -260,3 +260,14 @@ GitHub Actions 不跑 hook → bot 照常能 commit。
 
 - `state/` 只屬於 bot。本機要測就測,但**不要 commit**(hook 會擋)。
 - 真的要動(極少數):`git commit --no-verify`,並在此記一筆。
+
+## 🔧 測試網並行 (2026-07-17 起)
+
+`testnet_exec.py` 把四腿帳面淨部位同步到**合約測試網** `testnet.binancefuture.com`
+(用 demo.binance.com 的 key, 幣安已整併兩者; 該站不擋美國IP, 可在Actions跑)。
+
+- **驗的是水管**: 簽章/湊整/最小名目/拒單/開空/部位對帳 — market單, 對帳確定性
+- **驗不了成交率**: 測試網簿子是合成的, 你的單沒排在真實隊伍 → 成交率只有真錢能答
+- **state_testnet/ 與 state/ 完全隔離**: 判決只看 paper 的乾淨序列, 測試網壞了砍掉重來
+- **對帳警報**: 帳面目標 vs 測試網實際, 偏差>$25 = 水管在漏 (日報有一行摘要)
+- 測試網執行包在 try/except: 它掛掉**絕不影響** paper track

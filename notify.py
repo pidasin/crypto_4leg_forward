@@ -94,7 +94,7 @@ def send_alerts(alerts, context=""):
         L.append("_(另有%d個重複警報靜音中)_" % muted)
     return _post("\n".join(L))
 
-def send_daily_summary(positions, alerts_today, perf=None, dd=None):
+def send_daily_summary(positions, alerts_today, perf=None, dd=None, extra=None):
     """📅 每日摘要 — 一天一次, 這是你平常唯一會收到的東西"""
     now = datetime.now(timezone.utc)
     m = C.months_running()
@@ -149,6 +149,8 @@ def send_daily_summary(positions, alerts_today, perf=None, dd=None):
             L.append("🟡 " + a["msg"])
     else:
         L.append("✅ 一切正常")
+    if extra:
+        L.append(extra)
 
     # 檢查點倒數 (剩1個月內才提醒)
     for name, mo in [("6個月檢查點(只看有沒有壞掉)", C.LAYER3["checkpoint_1_months"]),
