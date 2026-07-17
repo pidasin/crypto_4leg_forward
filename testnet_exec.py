@@ -25,6 +25,7 @@ STATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "state_testnet"
 os.makedirs(STATE, exist_ok=True)
 ORDERS_F = os.path.join(STATE, "orders.jsonl")
 RECON_F  = os.path.join(STATE, "recon.jsonl")
+EQUITY_F = os.path.join(STATE, "equity.jsonl")
 
 def _keys():
     return (os.environ.get("BINANCE_DEMO_KEY", "").strip(),
@@ -189,7 +190,34 @@ def sync(book_positions, ts=None):
     # 容忍度: 最小名目造成的灰塵 + 湊整, 給$25。超過= 水管在漏
     out["ok"] = (not out["errors"]) and max_diff <= 25.0
     _append(RECON_F, out)
+    snapshot(ts)          # ★每小時權益快照 → 儀表板的資料來源
     return out
+
+def snapshot(ts=None):
+    """完整帳戶快照 → equity.jsonl (儀表板每小時的一格)"""
+    ts = ts or datetime.now(timezone.utc).isoformat()
+    code, a = signed("GET", "/fapi/v2/account")
+    if code != 200: return None
+    pos = []
+    for p in a.get("positions", []):
+        amt = float(p.get("positionAmt", 0) or 0)
+        if abs(amt) > 0 and p["symbol"].endswith("USDT"):
+            pos.append(dict(
+                coin=p["symbol"][:-4], amt=amt,
+                entry=float(p.get("entryPrice", 0) or 0),
+                upnl=round(float(p.get("unrealizedProfit", 0) or 0), 4),
+                notional=round(abs(float(p.get("notional", 0) or 0)), 2),
+            ))
+    rec = dict(
+        ts=ts,
+        wallet=round(float(a.get("totalWalletBalance", 0)), 4),        # 已實現
+        equity=round(float(a.get("totalMarginBalance", 0)), 4),        # 含未實現 = 真正的權益
+        upnl=round(float(a.get("totalUnrealizedProfit", 0)), 4),
+        gross=round(sum(x["notional"] for x in pos), 2),               # 總曝險
+        positions=pos,
+    )
+    _append(EQUITY_F, rec)
+    return rec
 
 def recon_line():
     """給日報用的一行摘要"""
