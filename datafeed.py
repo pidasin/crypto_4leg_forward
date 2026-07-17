@@ -49,11 +49,16 @@ def binance_klines(symbol, interval="1h", limit=1000):
 
 # ---------- Coinbase ----------
 def coinbase_candles(product, granularity=3600, hours=800):
+    """★分頁大小必須依 granularity 而定 (Coinbase單次上限300根)
+       bug修正(2026-07-17): 原本硬編碼295小時 → 日K每次只拿到12根(效率4%),
+       A腿抓8幣200天要128次請求。修正後每次拿295根 → 8次請求。GitHub Actions額度直接省16倍。
+    """
     end = datetime.now(timezone.utc)
     out = []
     cur = end - timedelta(hours=hours)
+    seg_hours = 295 * granularity / 3600.0     # 295根 × 每根幾小時
     while cur < end:
-        seg = min(cur + timedelta(hours=295), end)
+        seg = min(cur + timedelta(hours=seg_hours), end)
         r = _get("https://api.exchange.coinbase.com/products/%s/candles" % product,
                  dict(granularity=granularity, start=cur.isoformat(), end=seg.isoformat()))
         if isinstance(r, list):

@@ -9,7 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: '3.11' }
+        with:
+          python-version: '3.11'
+          cache: 'pip'          # ★快取pip packages: 省40-60秒/次 = 每月省~700分鐘額度
       - run: pip install -r requirements.txt
       - name: Run hourly cycle
         env:
