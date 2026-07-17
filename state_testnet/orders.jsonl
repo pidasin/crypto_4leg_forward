@@ -1,0 +1,8 @@
+{"ts": "2026-07-17T14:39:39.081100+00:00", "coin": "ADA", "side": "SELL", "qty": 1931.0, "ref_px": 0.1618, "target_frac": -0.03125, "http": 200, "orderId": 1036741750, "err": null}
+{"ts": "2026-07-17T14:39:39.081100+00:00", "coin": "BTC", "side": "SELL", "qty": 0.0206, "ref_px": 63169.2, "target_frac": -0.130235, "http": 200, "orderId": 22332500924, "err": null}
+{"ts": "2026-07-17T14:39:39.081100+00:00", "coin": "DOGE", "side": "SELL", "qty": 4342.0, "ref_px": 0.07196, "target_frac": -0.03125, "http": 200, "orderId": 1656529432, "err": null}
+{"ts": "2026-07-17T14:39:39.081100+00:00", "coin": "ETH", "side": "BUY", "qty": 0.489, "ref_px": 1824.8, "target_frac": 0.089252, "http": 200, "orderId": 13634484612, "err": null}
+{"ts": "2026-07-17T14:39:39.081100+00:00", "coin": "LINK", "side": "SELL", "qty": 38.42, "ref_px": 8.132, "target_frac": -0.03125, "http": 200, "orderId": 845892788, "err": null}
+{"ts": "2026-07-17T14:39:39.081100+00:00", "coin": "LTC", "side": "SELL", "qty": 7.005, "ref_px": 44.61, "target_frac": -0.03125, "http": 200, "orderId": 1360702197, "err": null}
+{"ts": "2026-07-17T14:39:39.081100+00:00", "coin": "SOL", "side": "BUY", "qty": 6.97, "ref_px": 74.68, "target_frac": 0.052083, "http": 200, "orderId": 3250177873, "err": null}
+{"ts": "2026-07-17T14:39:39.081100+00:00", "coin": "XLM", "side": "SELL", "qty": 1673.0, "ref_px": 0.18676, "target_frac": -0.03125, "http": 200, "orderId": 580456882, "err": null}
