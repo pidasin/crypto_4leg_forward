@@ -227,13 +227,22 @@ def equity_curve():
     return df.sort_values("ts").set_index("ts")["total_nav"].astype(float)
 
 def drawdown_now():
+    """★2026-07-18 修正: 原版 eq.index[dd[dd>=-0.001].index[-1]] 用Timestamp當位置索引
+    → pandas新版直接IndexError。daily_summary必經此函式, 一旦NAV記錄夠多就每天必炸,
+    Commit state被跳過(workflow沒設if:always()) → 當天算出的A/T腿部位沒存進去。
+    """
     eq = equity_curve()
     if eq is None or len(eq)<2: return None
     peak = eq.cummax()
     dd = (eq/peak - 1)
+    if dd.iloc[-1] >= -0.001:                  # 目前在高點附近 → 沒有套牢
+        underwater_days = 0
+    else:
+        at_peak = dd[dd >= -0.001]             # 曾經"回到高點附近"的時間點
+        since = at_peak.index[-1] if len(at_peak) > 0 else eq.index[0]
+        underwater_days = (eq.index[-1] - since).days
     return dict(current=round(float(dd.iloc[-1])*100,2), max=round(float(dd.min())*100,2),
-                underwater_days=int(((dd<-0.001).iloc[::-1].cumprod()).sum()*0+ (0 if dd.iloc[-1]>=-0.001 else
-                    (eq.index[-1]-eq.index[dd[dd>=-0.001].index[-1]]).days if (dd>=-0.001).any() else 0)))
+                underwater_days=int(underwater_days))
 
 def maker_fill_rate(days=30):
     """從 trades.jsonl 算 maker 成交率 (testnet mode 才有意義)
