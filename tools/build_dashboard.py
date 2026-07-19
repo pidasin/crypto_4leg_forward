@@ -132,7 +132,8 @@ def main():
         card("手續費(taker估)", f"${fee_est:,.2f}", f"{fee_est/base*100:.3f}%"),
         card("運行", f"{days:.1f} 天", f"快照 {len(eq)} 筆"),
         card("對帳", "✅ 通過" if recon_ok else "🔴 異常",
-             f"偏差 ${last_recon.get('max_diff_usd', 0):.2f}", "" if recon_ok else "neg"),
+             f"偏差 ${last_recon.get('max_diff_usd', 0):.0f} / 容忍 ${last_recon.get('tolerance_usd', 70):.0f}",
+             "" if recon_ok else "neg"),
     ])
 
     # ---------- 權益圖 + 回撤圖 ----------
@@ -295,7 +296,7 @@ def main():
         fm("⑦ T腿衰減", "觀察中", "ETF後1.78→0.58 · forward<0.3持續→12月砍"),
         fm("⑧ 腿間相關飆升", f"max {max_corr:.2f}" if n_pts >= 72 else "累積中", f"任一對>{C.LAYER2['leg_corr_max']}=變成同一個賭注", "" if max_corr <= C.LAYER2["leg_corr_max"] else "neg"),
         fm("⑨ 交易所倒閉", "只能防範", "FTX前例·真錢階段: 定期提領獲利, 不押身家"),
-        fm("⑩ 我們自己的錯", "✅ 對帳通過" if recon_ok else "🔴 對帳異常", "帳面vs測試網實際逐幣對帳 · 偏差>$25=水管在漏", "" if recon_ok else "neg"),
+        fm("⑩ 我們自己的錯", "✅ 對帳通過" if recon_ok else "🔴 對帳異常", f"帳面vs測試網實際逐幣對帳 · 容忍${last_recon.get('tolerance_usd',70):.0f}(=最小可下單額, 以下修不了)", "" if recon_ok else "neg"),
     ]
     fail_table = f'<table><tr><th>失效模式</th><th>狀態</th><th>偵測/應對</th></tr>{"".join(fail_rows)}</table>'
 
@@ -309,6 +310,12 @@ def main():
     trade_table = (f'<table><tr><th>時間(台)</th><th>幣</th><th>方向</th><th>數量</th><th>名目</th></tr>'
                    f'{"".join(trows)}</table>') if trows else '<div class="empty">尚無成交</div>'
 
+    # 資料新鮮度 (GitHub排程實測只有~60%到達率, 斷幾小時是常態不是故障)
+    stale_h = 0.0
+    if eq:
+        stale_h = (datetime.now(timezone.utc) - datetime.fromisoformat(cur["ts"]).replace(tzinfo=timezone.utc)).total_seconds()/3600
+    stale_s = (f' · <span style="color:#fbbf24">資料{stale_h:.1f}小時前</span>' if stale_h > 2.5
+               else " · 每小時更新")
     pnl_color = "#4ade80" if pnl >= 0 else "#f87171"
     html = f"""<!DOCTYPE html>
 <html lang="zh-Hant"><head>
@@ -355,7 +362,7 @@ tr:last-child td{{border:none}}
 </style></head><body>
 <h1>四腿 forward — 合約測試網模擬金</h1>
 <div class="big" style="color:{pnl_color}">${equity:,.2f}</div>
-<div class="sub">{money(pnl)} ({pnl_pct:+.2f}%) · 更新 {now_tw} 台北 · 每小時更新</div>
+<div class="sub">{money(pnl)} ({pnl_pct:+.2f}%) · 更新 {now_tw} 台北{stale_s}</div>
 {eq_svg}
 <div class="grid">{cards}</div>
 <h2>回撤</h2>{dd_svg}

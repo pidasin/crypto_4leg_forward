@@ -71,6 +71,14 @@ def filters():
             )
     return _FILTERS
 
+def min_trade_usd(symbol):
+    """該幣可下單的最小名目金額 (低於此值下單必被拒)
+    ★對帳容忍度必須跟這個數字連動, 不能各寫各的
+    """
+    f = filters().get(symbol)
+    if f is None: return 1e9
+    return max(f["min_notional"] * 1.1, 10.0)
+
 def round_qty(symbol, qty):
     f = filters().get(symbol)
     if f is None: return None
@@ -149,9 +157,10 @@ def sync(book_positions, ts=None):
         delta = want_qty - have_qty
         delta_usd = abs(delta) * p
 
-        # 太小就不動 (避免灰塵單被拒/來回磨損)
-        if delta_usd < max(f["min_notional"] * 1.1, 10.0):
-            out["skipped"].append(f"{coin}: Δ${delta_usd:.2f}太小")
+        # 太小就不動 (低於交易所最小名目, 下了會被拒)
+        floor = min_trade_usd(sym)
+        if delta_usd < floor:
+            out["skipped"].append(f"{coin}: Δ${delta_usd:.2f} < 可下單下限${floor:.0f}")
             continue
 
         qty = round_qty(sym, delta)
@@ -187,8 +196,13 @@ def sync(book_positions, ts=None):
     out["recon"] = recon
     out["max_diff_usd"] = round(max_diff, 2)
     out["wallet_usdt"] = wallet_usdt()
-    # 容忍度: 最小名目造成的灰塵 + 湊整, 給$25。超過= 水管在漏
-    out["ok"] = (not out["errors"]) and max_diff <= 25.0
+    # ★容忍度必須 ≥ 可下單下限, 否則製造「永遠修不好的紅燈」
+    #   bug(2026-07-19): 原本硬編碼$25, 但BTC最小名目$50 → 門檻$55
+    #   → $25~$55的偏差【結構上無法修正】卻每小時報一次警 = 自己製造通知疲勞。
+    #   偏差還會隨幣價自然漂移(目標是固定美元, 部位名目跟著價格跑), 所以必然爬進這個死區。
+    tol = round(max(min_trade_usd(c + "USDT") for c in tgt) * 1.25, 2) if tgt else 70.0
+    out["tolerance_usd"] = tol
+    out["ok"] = (not out["errors"]) and max_diff <= tol
     _append(RECON_F, out)
     snapshot(ts)          # ★每小時權益快照 → 儀表板的資料來源
     return out
