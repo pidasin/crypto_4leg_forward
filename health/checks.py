@@ -112,9 +112,22 @@ def layer3():
     R = book.leg_returns()
 
     def sharpe(s):
+        """★2026-07-19 修正致命bug: 原版對【小時級】報酬用 √365 年化
+           → 低估 √24 = 4.9倍 → 真實Sharpe 1.45會被算成0.30, 正好踩處決線,
+             四條腿不管表現多好都會在12個月被判死刑。
+
+           正確做法: 先把不規則的逐筆報酬【彙總成日報酬】再用√365。
+           這樣同時解決兩件事:
+             (1) 單位一致 (日報酬配√365)
+             (2) GitHub排程到達率只有~60%, 間隔在1~3.7h之間跳動,
+                 逐筆算等於把長間隔和短間隔當成同一單位 —— 彙總到日就免疫。
+        """
         s = s.dropna()
-        if len(s) < 30 or s.std()==0: return None
-        return float(s.mean()/s.std()*np.sqrt(365))
+        if len(s) == 0: return None
+        d = s.resample("D").sum()          # 逐筆(約小時) → 日報酬
+        d = d[d.index >= s.index[0].normalize()]
+        if len(d) < 30 or d.std() == 0: return None
+        return float(d.mean()/d.std()*np.sqrt(365))
 
     # 檢查點1: 6個月 — 只看第一層, 不看賺賠
     if m >= C.LAYER3["checkpoint_1_months"]:

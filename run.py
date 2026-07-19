@@ -184,9 +184,9 @@ def status():
     if not R.empty and len(R)>30:
         print(f"\n【各腿forward表現】(僅供參考, 12個月前不做判決)")
         for leg in R.columns:
-            s=R[leg].dropna()
-            if len(s)>30 and s.std()>0:
-                print(f"  {leg:8} Sharpe {s.mean()/s.std()*np.sqrt(365):+.2f}")
+            d = R[leg].dropna().resample("D").sum()      # ★逐筆(小時)→日, 才配得上√365
+            if len(d)>30 and d.std()>0:
+                print(f"  {leg:8} Sharpe {d.mean()/d.std()*np.sqrt(365):+.2f}")
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv)>1 else "status"
