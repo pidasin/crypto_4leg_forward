@@ -28,7 +28,9 @@ jobs:
         run: python run.py hourly
       - name: Build dashboard
         if: always()
-        run: python tools/build_dashboard.py
+        run: |
+          python tools/build_dashboard.py
+          python tools/build_odds.py
       - name: Commit state
         if: always()
         run: |

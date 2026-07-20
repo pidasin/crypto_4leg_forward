@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>四腿勝率拉桿</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f1117;color:#e5e7eb;font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;padding:14px;max-width:760px;margin:0 auto}
+h1{font-size:17px;color:#9ca3af;font-weight:600}
+a{color:#60a5fa;text-decoration:none;font-size:13px}
+.hero{background:#171a23;border-radius:12px;padding:18px;margin:14px 0;text-align:center}
+.hl{color:#6b7280;font-size:12px}
+.big{font-size:52px;font-weight:800;color:#4ade80;letter-spacing:-2px;line-height:1.1}
+.range{width:100%;margin:16px 0 6px;accent-color:#4ade80;height:28px}
+.days{font-size:19px;font-weight:700;margin-top:4px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.sc{background:#1c1f2a;border-radius:9px;padding:9px}
+.sc .n{font-size:11px;color:#6b7280}
+.sc .v{font-size:19px;font-weight:700;margin-top:2px}
+.sc.o .v{color:#60a5fa} .sc.h .v{color:#4ade80} .sc.c .v{color:#fbbf24}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.st{background:#171a23;border-radius:9px;padding:10px}
+.st .n{font-size:11px;color:#6b7280} .st .v{font-size:16px;font-weight:700;margin-top:2px}
+.chart{width:100%;height:auto;background:#171a23;border-radius:10px;margin-top:6px}
+h2{font-size:14px;color:#9ca3af;margin:20px 0 8px;border-left:3px solid #3b4252;padding-left:8px}
+.note{background:#1c1f2a;border-radius:10px;padding:13px;font-size:12px;color:#9ca3af;line-height:1.75;margin-top:14px}
+.lg{display:flex;gap:14px;font-size:11px;color:#9ca3af;margin-top:8px;flex-wrap:wrap}
+.dot{display:inline-block;width:9px;height:3px;vertical-align:middle;margin-right:4px}
+b.g{color:#4ade80} b.r{color:#f87171}
+</style></head><body>
+<h1>四腿組合 — 持有多久,賺錢機率多少</h1>
+<a href="./">← 回儀表板</a>
+
+<div class="hero">
+  <div class="hl">誠實預期下,持有這段時間結束時為正報酬的機率</div>
+  <div class="big" id="win">—</div>
+  <input type="range" class="range" id="sl" min="0" max="27" value="2">
+  <div class="days" id="dl">—</div>
+  <div class="grid3">
+    <div class="sc o"><div class="n">回測 2.10</div><div class="v" id="w_o">—</div></div>
+    <div class="sc h"><div class="n">★誠實 1.45</div><div class="v" id="w_h">—</div></div>
+    <div class="sc c"><div class="n">保守 1.00</div><div class="v" id="w_c">—</div></div>
+  </div>
+  <div class="stats">
+    <div class="st"><div class="n">中位報酬</div><div class="v" id="med">—</div></div>
+    <div class="st"><div class="n">壞情況(10%分位)</div><div class="v" id="p10">—</div></div>
+    <div class="st"><div class="n">好情況(90%分位)</div><div class="v" id="p90">—</div></div>
+  </div>
+</div>
+
+<h2>勝率曲線</h2>
+<svg viewBox="0 0 700 230" class="chart"><line x1="34" y1="172" x2="690" y2="172" stroke="#2a2f3a"/><text x="28" y="176" fill="#6b7280" font-size="11" text-anchor="end">50%</text><line x1="34" y1="139" x2="690" y2="139" stroke="#2a2f3a"/><text x="28" y="143" fill="#6b7280" font-size="11" text-anchor="end">60%</text><line x1="34" y1="107" x2="690" y2="107" stroke="#2a2f3a"/><text x="28" y="111" fill="#6b7280" font-size="11" text-anchor="end">70%</text><line x1="34" y1="75" x2="690" y2="75" stroke="#2a2f3a"/><text x="28" y="79" fill="#6b7280" font-size="11" text-anchor="end">80%</text><line x1="34" y1="42" x2="690" y2="42" stroke="#2a2f3a"/><text x="28" y="46" fill="#6b7280" font-size="11" text-anchor="end">90%</text><line x1="34" y1="10" x2="690" y2="10" stroke="#2a2f3a"/><text x="28" y="14" fill="#6b7280" font-size="11" text-anchor="end">100%</text><line x1="192" y1="10" x2="192" y2="204" stroke="#1f2430"/><text x="192" y="222" fill="#6b7280" font-size="11" text-anchor="middle">7天</text><line x1="310" y1="10" x2="310" y2="204" stroke="#1f2430"/><text x="310" y="222" fill="#6b7280" font-size="11" text-anchor="middle">1月</text><line x1="399" y1="10" x2="399" y2="204" stroke="#1f2430"/><text x="399" y="222" fill="#6b7280" font-size="11" text-anchor="middle">3月</text><line x1="512" y1="10" x2="512" y2="204" stroke="#1f2430"/><text x="512" y="222" fill="#6b7280" font-size="11" text-anchor="middle">1年</text><line x1="601" y1="10" x2="601" y2="204" stroke="#1f2430"/><text x="601" y="222" fill="#6b7280" font-size="11" text-anchor="middle">3年</text><line x1="690" y1="10" x2="690" y2="204" stroke="#1f2430"/><text x="690" y="222" fill="#6b7280" font-size="11" text-anchor="middle">9年</text><path d="M34.0,159.1 L90.2,154.2 L123.0,154.9 L164.4,149.7 L191.7,144.2 L220.5,137.7 L247.8,127.0 L280.7,118.3 L309.6,103.8 L342.4,89.9 L365.7,78.2 L398.6,61.1 L421.9,49.1 L439.9,39.1 L454.7,33.3 L487.6,22.9 L512.0,16.5 L530.0,13.2 L544.8,11.9 L568.1,10.6 L586.3,10.3 L601.0,10.0 L624.3,10.0 L642.4,10.0 L657.2,10.0 L669.6,10.0 L680.5,10.0 L690.0,10.0" fill="none" stroke="#60a5fa" stroke-width="1.8" opacity="0.65"/><path d="M34.0,170.0 L90.2,169.4 L123.0,170.4 L164.4,168.8 L191.7,164.2 L220.5,162.3 L247.8,156.5 L280.7,147.1 L309.6,134.8 L342.4,121.5 L365.7,113.5 L398.6,94.4 L421.9,85.0 L439.9,75.0 L454.7,66.9 L487.6,49.8 L512.0,38.5 L530.0,30.0 L544.8,25.8 L568.1,18.4 L586.3,14.9 L601.0,12.6 L624.3,11.0 L642.4,10.3 L657.2,10.0 L669.6,10.0 L680.5,10.0 L690.0,10.0" fill="none" stroke="#4ade80" stroke-width="3" opacity="1"/><path d="M34.0,179.1 L90.2,178.8 L123.0,178.5 L164.4,179.4 L191.7,177.5 L220.5,175.5 L247.8,175.2 L280.7,165.5 L309.6,154.2 L342.4,143.2 L365.7,139.3 L398.6,121.9 L421.9,114.4 L439.9,106.0 L454.7,100.2 L487.6,82.4 L512.0,70.5 L530.0,61.1 L544.8,53.3 L568.1,42.0 L586.3,33.6 L601.0,29.4 L624.3,20.3 L642.4,16.8 L657.2,13.9 L669.6,12.6 L680.5,11.3 L690.0,10.6" fill="none" stroke="#fbbf24" stroke-width="1.8" opacity="0.65"/><line x1="128.8" y1="10" x2="128.8" y2="204" stroke="#f472b6" stroke-width="2"/><text x="134" y="22" fill="#f472b6" font-size="11">你在這裡</text><line id="mk" x1="0" y1="10" x2="0" y2="204" stroke="#fff" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.85"/></svg>
+<div class="lg">
+ <span><i class="dot" style="background:#60a5fa"></i>回測2.10</span>
+ <span><i class="dot" style="background:#4ade80"></i>誠實1.45</span>
+ <span><i class="dot" style="background:#fbbf24"></i>保守1.00</span>
+ <span><i class="dot" style="background:#f472b6"></i>你在這裡 (3.2天)</span>
+</div>
+
+<div class="note">
+<b>這張圖怎麼算的</b>:四腿等權回測日報酬(2021-04~2026-07,1906天)做 block bootstrap
+(block=20天保留自相關與肥尾,20000次模擬)。<b>不是常態公式</b> —— 這組報酬峰度 15.7,用常態會低估尾部。<br><br>
+<b class="r">三個必須知道的限制</b>:<br>
+① <b>勝率不等於安全</b>。1年勝率 91% 聽起來很高,但那 9% 是「一整年結束時還在虧」,
+而且路上的回撤更兇 —— 預期 MDD <b>-24.6%</b>、最長套牢 <b>214天</b>。
+勝率高不代表過程不痛。<br>
+② <b>曲線來自回測,不是承諾</b>。它假設 edge 在未來 9 年持續存在。而我們已知
+T腿在 ETF 後從 1.78 衰減到 0.58 —— 十年內大概率會死一到兩條腿。<b>越右邊的數字越該打折</b>。<br>
+③ <b>看綠線,別看藍線</b>。藍線是回測原值(2.10),已知有 winner's curse(40+家族挑4條)。
+綠線 1.45 才是誠實預期,黃線 1.00 是「edge 比想的弱一半」的情境。
+</div>
+
+<script>
+const H=[1, 2, 3, 5, 7, 10, 14, 21, 30, 45, 60, 90, 120, 150, 180, 270, 365, 456, 547, 730, 913, 1095, 1460, 1825, 2190, 2555, 2920, 3285], C={"optimistic": {"1": {"win": 53.9, "med": 0.0, "p10": -0.9, "p90": 1.4}, "2": {"win": 55.4, "med": 0.1, "p10": -1.3, "p90": 2.1}, "3": {"win": 55.2, "med": 0.1, "p10": -1.5, "p90": 2.9}, "5": {"win": 56.8, "med": 0.3, "p10": -1.8, "p90": 4.3}, "7": {"win": 58.5, "med": 0.4, "p10": -2.1, "p90": 5.1}, "10": {"win": 60.5, "med": 0.6, "p10": -2.6, "p90": 6.6}, "14": {"win": 63.8, "med": 0.9, "p10": -2.6, "p90": 8.1}, "21": {"win": 66.5, "med": 1.7, "p10": -3.0, "p90": 10.9}, "30": {"win": 71.0, "med": 3.0, "p10": -3.4, "p90": 13.8}, "45": {"win": 75.3, "med": 5.0, "p10": -3.7, "p90": 18.5}, "60": {"win": 78.9, "med": 6.8, "p10": -3.7, "p90": 22.3}, "90": {"win": 84.2, "med": 11.2, "p10": -2.9, "p90": 29.6}, "120": {"win": 87.9, "med": 15.4, "p10": -1.5, "p90": 36.2}, "150": {"win": 91.0, "med": 19.4, "p10": 0.9, "p90": 42.6}, "180": {"win": 92.8, "med": 23.5, "p10": 2.5, "p90": 48.6}, "270": {"win": 96.0, "med": 35.7, "p10": 9.1, "p90": 66.0}, "365": {"win": 98.0, "med": 48.7, "p10": 17.7, "p90": 83.4}, "456": {"win": 99.0, "med": 61.7, "p10": 26.4, "p90": 100.2}, "547": {"win": 99.4, "med": 73.7, "p10": 34.9, "p90": 115.0}, "730": {"win": 99.8, "med": 98.2, "p10": 53.1, "p90": 147.1}, "913": {"win": 99.9, "med": 124.1, "p10": 73.2, "p90": 178.6}, "1095": {"win": 100.0, "med": 149.2, "p10": 93.5, "p90": 207.7}, "1460": {"win": 100.0, "med": 198.5, "p10": 133.8, "p90": 267.0}, "1825": {"win": 100.0, "med": 248.8, "p10": 175.7, "p90": 324.7}, "2190": {"win": 100.0, "med": 298.5, "p10": 218.5, "p90": 381.8}, "2555": {"win": 100.0, "med": 348.0, "p10": 262.6, "p90": 439.7}, "2920": {"win": 100.0, "med": 398.9, "p10": 304.7, "p90": 493.7}, "3285": {"win": 100.0, "med": 448.5, "p10": 350.4, "p90": 550.3}}, "honest": {"1": {"win": 50.5, "med": 0.0, "p10": -1.0, "p90": 1.3}, "2": {"win": 50.7, "med": 0.0, "p10": -1.4, "p90": 2.1}, "3": {"win": 50.4, "med": 0.0, "p10": -1.6, "p90": 2.8}, "5": {"win": 50.9, "med": 0.0, "p10": -2.0, "p90": 4.0}, "7": {"win": 52.3, "med": 0.1, "p10": -2.4, "p90": 5.0}, "10": {"win": 52.9, "med": 0.2, "p10": -3.0, "p90": 6.2}, "14": {"win": 54.7, "med": 0.3, "p10": -3.3, "p90": 7.5}, "21": {"win": 57.6, "med": 0.8, "p10": -4.1, "p90": 9.9}, "30": {"win": 61.4, "med": 1.6, "p10": -4.8, "p90": 12.4}, "45": {"win": 65.5, "med": 3.0, "p10": -5.6, "p90": 16.4}, "60": {"win": 68.0, "med": 4.2, "p10": -6.4, "p90": 19.8}, "90": {"win": 73.9, "med": 7.3, "p10": -6.4, "p90": 25.8}, "120": {"win": 76.8, "med": 9.9, "p10": -6.7, "p90": 31.2}, "150": {"win": 79.9, "med": 13.0, "p10": -6.3, "p90": 36.1}, "180": {"win": 82.4, "med": 16.0, "p10": -5.4, "p90": 41.4}, "270": {"win": 87.7, "med": 24.5, "p10": -2.3, "p90": 54.8}, "365": {"win": 91.2, "med": 32.9, "p10": 1.8, "p90": 67.4}, "456": {"win": 93.8, "med": 41.7, "p10": 6.0, "p90": 80.6}, "547": {"win": 95.1, "med": 50.3, "p10": 10.6, "p90": 92.0}, "730": {"win": 97.4, "med": 67.5, "p10": 22.0, "p90": 115.9}, "913": {"win": 98.5, "med": 84.5, "p10": 33.7, "p90": 138.5}, "1095": {"win": 99.2, "med": 100.9, "p10": 45.6, "p90": 160.2}, "1460": {"win": 99.7, "med": 135.8, "p10": 71.9, "p90": 203.9}, "1825": {"win": 99.9, "med": 169.8, "p10": 97.6, "p90": 245.8}, "2190": {"win": 100.0, "med": 202.6, "p10": 124.6, "p90": 286.3}, "2555": {"win": 100.0, "med": 236.8, "p10": 151.6, "p90": 327.4}, "2920": {"win": 100.0, "med": 270.9, "p10": 179.7, "p90": 368.4}, "3285": {"win": 100.0, "med": 304.4, "p10": 207.6, "p90": 404.3}}, "conservative": {"1": {"win": 47.7, "med": -0.0, "p10": -1.0, "p90": 1.3}, "2": {"win": 47.8, "med": -0.0, "p10": -1.5, "p90": 2.1}, "3": {"win": 47.9, "med": -0.1, "p10": -1.7, "p90": 2.7}, "5": {"win": 47.6, "med": -0.1, "p10": -2.2, "p90": 3.7}, "7": {"win": 48.2, "med": -0.1, "p10": -2.6, "p90": 4.7}, "10": {"win": 48.8, "med": -0.1, "p10": -3.3, "p90": 6.0}, "14": {"win": 48.9, "med": -0.1, "p10": -3.6, "p90": 7.2}, "21": {"win": 51.9, "med": 0.2, "p10": -4.6, "p90": 9.2}, "30": {"win": 55.4, "med": 0.9, "p10": -5.7, "p90": 11.6}, "45": {"win": 58.8, "med": 1.7, "p10": -6.9, "p90": 15.1}, "60": {"win": 60.0, "med": 2.4, "p10": -8.1, "p90": 17.8}, "90": {"win": 65.4, "med": 4.7, "p10": -9.2, "p90": 22.5}, "120": {"win": 67.7, "med": 6.5, "p10": -10.2, "p90": 26.9}, "150": {"win": 70.3, "med": 8.3, "p10": -10.4, "p90": 31.2}, "180": {"win": 72.1, "med": 10.0, "p10": -11.0, "p90": 35.3}, "270": {"win": 77.6, "med": 16.2, "p10": -10.3, "p90": 46.3}, "365": {"win": 81.3, "med": 21.9, "p10": -9.4, "p90": 57.4}, "456": {"win": 84.2, "med": 27.7, "p10": -7.2, "p90": 66.6}, "547": {"win": 86.6, "med": 33.7, "p10": -5.0, "p90": 76.0}, "730": {"win": 90.1, "med": 45.4, "p10": 0.2, "p90": 94.3}, "913": {"win": 92.7, "med": 56.7, "p10": 6.5, "p90": 110.7}, "1095": {"win": 94.0, "med": 67.7, "p10": 11.5, "p90": 126.7}, "1460": {"win": 96.8, "med": 91.4, "p10": 27.4, "p90": 159.9}, "1825": {"win": 97.9, "med": 114.8, "p10": 41.0, "p90": 190.4}, "2190": {"win": 98.8, "med": 137.7, "p10": 56.3, "p90": 221.8}, "2555": {"win": 99.2, "med": 160.3, "p10": 74.8, "p90": 251.3}, "2920": {"win": 99.6, "med": 183.8, "p10": 91.3, "p90": 279.2}, "3285": {"win": 99.8, "med": 207.5, "p10": 109.6, "p90": 308.4}}};
+const el=(i)=>document.getElementById(i);
+function lab(d){
+  if(d<30) return d+" 天";
+  if(d<365) return d+" 天 ("+(d/30.44).toFixed(1)+" 個月)";
+  const y=d/365; return y<2 ? d+" 天 ("+y.toFixed(1)+" 年)" : y.toFixed(1)+" 年";
+}
+function upd(){
+  const d=H[+el("sl").value], k=String(d);
+  const h=C.honest[k], o=C.optimistic[k], c=C.conservative[k];
+  el("win").textContent=h.win.toFixed(1)+"%";
+  el("dl").textContent=lab(d);
+  el("w_o").textContent=o.win.toFixed(1)+"%";
+  el("w_h").textContent=h.win.toFixed(1)+"%";
+  el("w_c").textContent=c.win.toFixed(1)+"%";
+  const sg=(v)=>(v>=0?"+":"")+v.toFixed(1)+"%";
+  el("med").textContent=sg(h.med);
+  el("p10").textContent=sg(h.p10);
+  el("p90").textContent=sg(h.p90);
+  el("p10").style.color = h.p10>=0 ? "#4ade80" : "#f87171";
+  el("med").style.color = h.med>=0 ? "#4ade80" : "#f87171";
+  el("p90").style.color = "#4ade80";
+  const x = 34 + Math.log10(d)/Math.log10(3285)*(700-34-10);
+  const mk=document.getElementById("mk");
+  mk.setAttribute("x1",x); mk.setAttribute("x2",x);
+}
+el("sl").addEventListener("input",upd); upd();
+</script>
+<div style="color:#4b5563;font-size:11px;text-align:center;margin:18px 0">
+更新 2026-07-20 13:21 台北 · 已運行 3.2 天 · 曲線為靜態回測推估
+</div>
+</body></html>

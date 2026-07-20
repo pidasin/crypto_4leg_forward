@@ -368,6 +368,7 @@ tr:last-child td{{border:none}}
 <h2>回撤</h2>{dd_svg}
 <h2>測試網實際部位 ({len(cur.get("positions", []))})</h2>{pos_table}
 <h2>四腿帳面 (paper)</h2>{leg_table}
+<div style="margin:14px 0"><a href="./odds.html" style="display:block;background:#171a23;border-radius:10px;padding:13px;color:#4ade80;text-decoration:none;font-size:14px">🎚️ <b>勝率拉桿</b> — 拉一下看「持有N天賺錢機率多少」<span style="color:#6b7280;font-size:12px"> ›</span></a></div>
 <h2>⏳ 判決時鐘</h2>{clock_html}
 <h2>🩺 各腿生命徵象 <span class="sm">(機制監控, 比績效早發警訊)</span></h2>{legs_health}
 <h2>📡 資料源</h2>{feed_table}
