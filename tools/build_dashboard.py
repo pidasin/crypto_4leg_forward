@@ -23,6 +23,11 @@ def read_jsonl(path):
                 except Exception: pass
     return out
 
+def _dt(ts_iso):
+    d = datetime.fromisoformat(ts_iso.replace("Z", "+00:00"))
+    return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+
+
 def tw(ts_iso, fmt="%m/%d %H:%M"):
     try:
         d = datetime.fromisoformat(ts_iso.replace("Z", "+00:00"))
@@ -62,6 +67,52 @@ def line_chart(pts, w=700, h=200, color="#4ade80", fill=True, ylabel="", baselin
         anchor = "start" if i == 0 else ("end" if i == n-1 else "middle")
         s.append(f'<text x="{X(i):.0f}" y="{h-6}" fill="#6b7280" font-size="11" text-anchor="{anchor}">{pts[i][0]}</text>')
     s.append(f'<text x="{w-10}" y="18" fill="{color}" font-size="13" text-anchor="end" font-weight="600">{ylabel}</text>')
+    s.append('</svg>')
+    return "".join(s)
+
+
+def dual_chart(series, w=700, h=220, baseline=0.0, ylabel=""):
+    """多條線疊在同一張圖。series = [(label, color, [(xlabel, y), ...]), ...]
+       所有線共用 y 軸 (適合都是 % 報酬的對照)。"""
+    allpts = [p for _, _, pts in series for p in pts]
+    if len(allpts) < 2:
+        return f'<div class="empty">資料累積中… (目前 {len(allpts)} 點)</div>'
+    ys = [p[1] for p in allpts] + [baseline]
+    ymin, ymax = min(ys), max(ys)
+    pad = (ymax - ymin) * 0.14 or 0.1
+    ymin -= pad; ymax += pad
+    # x 軸用「第一條線」的點數當基準 (兩條線點數相近, 各自等距鋪開)
+    ml, mb = 8, 22
+    def Y(v): return 8 + (h - mb - 8) * (1 - (v - ymin) / (ymax - ymin))
+    s = [f'<svg viewBox="0 0 {w} {h}" preserveAspectRatio="none" class="chart">']
+    for fr in (0.25, 0.5, 0.75):
+        gy = 8 + (h - mb - 8) * fr
+        s.append(f'<line x1="{ml}" y1="{gy:.0f}" x2="{w-8}" y2="{gy:.0f}" stroke="#2a2f3a" stroke-width="1"/>')
+    if ymin < baseline < ymax:
+        by = Y(baseline)
+        s.append(f'<line x1="{ml}" y1="{by:.1f}" x2="{w-8}" y2="{by:.1f}" stroke="#888" stroke-dasharray="4,4" stroke-width="1"/>')
+    xlabels = None
+    for label, color, pts in series:
+        if len(pts) < 2: continue
+        def X(i, n=len(pts)): return ml + i * (w - ml - 8) / (n - 1)
+        path = " ".join(f"{'M' if i==0 else 'L'}{X(i):.1f},{Y(p[1]):.1f}" for i, p in enumerate(pts))
+        s.append(f'<path d="{path}" fill="none" stroke="{color}" stroke-width="2.2"/>')
+        lx, ly = X(len(pts)-1), Y(pts[-1][1])
+        s.append(f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="3.5" fill="{color}"/>')
+        if xlabels is None: xlabels = pts
+    n = len(xlabels)
+    for i in (0, n // 2, n - 1):
+        anchor = "start" if i == 0 else ("end" if i == n-1 else "middle")
+        xx = ml + i * (w - ml - 8) / (n - 1)
+        s.append(f'<text x="{xx:.0f}" y="{h-6}" fill="#6b7280" font-size="11" text-anchor="{anchor}">{xlabels[i][0]}</text>')
+    # 圖例
+    lgx = ml + 4
+    for label, color, _ in series:
+        s.append(f'<rect x="{lgx}" y="8" width="10" height="10" rx="2" fill="{color}"/>')
+        s.append(f'<text x="{lgx+14}" y="17" fill="#cbd5e1" font-size="11">{label}</text>')
+        lgx += 14 + len(label) * 12 + 16
+    if ylabel:
+        s.append(f'<text x="{w-10}" y="17" fill="#9ca3af" font-size="12" text-anchor="end" font-weight="600">{ylabel}</text>')
     s.append('</svg>')
     return "".join(s)
 
@@ -146,6 +197,37 @@ def main():
         dd_pts.append((tw(e["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"),
                        round((e["equity"] / peak2 - 1) * 100, 3)))
     dd_svg = line_chart(dd_pts, h=120, color="#f87171", ylabel=f"{cur_dd:.2f}%")
+
+    # ---------- 模擬(paper) vs 實際模擬金(testnet) 對照 ----------
+    # 兩者都折算成「相對起始的報酬%」, 才能同軸比較 (本金不同: paper $10000 / testnet ~$5000)
+    tn_base = first.get("equity") or base
+    tn_ret = [(tw(e["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"),
+               round((e["equity"] / tn_base - 1) * 100, 4)) for e in eq]
+    pa_ret = [(tw(n["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"),
+               round((n.get("total_nav", 1.0) - 1) * 100, 4)) for n in navs]
+    cmp_svg = dual_chart(
+        [("模擬 paper", "#4ade80", pa_ret),
+         ("實際模擬金 testnet", "#60a5fa", tn_ret)],
+        ylabel="累積報酬 %")
+    # 追蹤誤差: 用最近鄰把兩序列對齊, 算 testnet − paper
+    import bisect
+    nav_ts = [_dt(n["ts"]) for n in navs]
+    diffs = []
+    for e in eq:
+        et = _dt(e["ts"])
+        k = bisect.bisect_left(nav_ts, et)
+        cand = [j for j in (k-1, k) if 0 <= j < len(navs)]
+        if not cand: continue
+        j = min(cand, key=lambda j: abs((nav_ts[j] - et).total_seconds()))
+        if abs((nav_ts[j] - et).total_seconds()) > 1800: continue
+        tn_r = (e["equity"] / tn_base - 1) * 100
+        pa_r = (navs[j].get("total_nav", 1.0) - 1) * 100
+        diffs.append((tw(e["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"), round(tn_r - pa_r, 4)))
+    cur_diff = diffs[-1][1] if diffs else None
+    avg_diff = sum(d[1] for d in diffs) / len(diffs) if diffs else None
+    diff_svg = line_chart(diffs, h=120, color="#fbbf24", ylabel=f"{cur_diff:+.3f}%" if cur_diff is not None else "—", baseline=0.0)
+    cur_diff_s = f"{cur_diff:+.3f}%" if cur_diff is not None else "—"
+    avg_diff_s = f"{avg_diff:+.3f}%" if avg_diff is not None else "—"
 
     # ---------- 部位表 ----------
     def fmt_px(v):
@@ -366,6 +448,12 @@ tr:last-child td{{border:none}}
 {eq_svg}
 <div class="grid">{cards}</div>
 <h2>回撤</h2>{dd_svg}
+<h2>模擬 vs 實際模擬金 <span class="sm">(同軸累積報酬%, 兩線越貼=執行摩擦越小)</span></h2>
+{cmp_svg}
+<div class="sub" style="margin:6px 2px 0">綠=模擬paper(完美成交假設) · 藍=實際模擬金testnet(真下單, 含滑點與最小下單量卡單)</div>
+<h3 style="font-size:14px;margin:16px 0 4px">追蹤誤差 <span class="sm">(testnet − paper, 負值=執行成本, 越平穩越好)</span></h3>
+{diff_svg}
+<div class="sub" style="margin:6px 2px 0">目前 {cur_diff_s} · 平均 {avg_diff_s} · 這就是「理想回測 vs 真實執行」的全部差距</div>
 <h2>測試網實際部位 ({len(cur.get("positions", []))})</h2>{pos_table}
 <h2>四腿帳面 (paper)</h2>{leg_table}
 <div style="margin:14px 0"><a href="./odds.html" style="display:block;background:#171a23;border-radius:10px;padding:13px;color:#4ade80;text-decoration:none;font-size:14px">🎚️ <b>勝率拉桿</b> — 拉一下看「持有N天賺錢機率多少」<span style="color:#6b7280;font-size:12px"> ›</span></a></div>
