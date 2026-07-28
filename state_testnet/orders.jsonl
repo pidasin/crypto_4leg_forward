@@ -162,3 +162,5 @@
 {"ts": "2026-07-28T03:26:39.449084+00:00", "coin": "ETH", "side": "SELL", "qty": 0.022, "ref_px": 1878.15, "target_frac": 0.046964, "http": 200, "orderId": 14779465292, "err": null}
 {"ts": "2026-07-28T03:31:33.959342+00:00", "coin": "BTC", "side": "SELL", "qty": 0.0131, "ref_px": 63258.6, "target_frac": -0.064866, "http": 200, "orderId": 24476138846, "err": null}
 {"ts": "2026-07-28T03:31:33.959342+00:00", "coin": "SOL", "side": "SELL", "qty": 11.28, "ref_px": 73.21, "target_frac": -0.03125, "http": 200, "orderId": 3577411212, "err": null}
+{"ts": "2026-07-28T06:28:08.438113+00:00", "coin": "BTC", "side": "SELL", "qty": 0.0019, "ref_px": 63493.2, "target_frac": -0.077354, "http": 200, "orderId": 24502182938, "err": null}
+{"ts": "2026-07-28T06:28:08.438113+00:00", "coin": "ETH", "side": "SELL", "qty": 0.024, "ref_px": 1882.06, "target_frac": 0.042542, "http": 200, "orderId": 14792349723, "err": null}
