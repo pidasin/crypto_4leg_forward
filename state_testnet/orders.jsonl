@@ -218,3 +218,6 @@
 {"ts": "2026-07-31T09:45:45.147836+00:00", "coin": "ETH", "side": "BUY", "qty": 0.052, "ref_px": 1881.78, "target_frac": 0.000597, "http": 200, "orderId": 15277923874, "err": null}
 {"ts": "2026-07-31T12:01:17.683552+00:00", "coin": "BTC", "side": "SELL", "qty": 0.0031, "ref_px": 63872.9, "target_frac": -0.161844, "http": 502, "orderId": null, "err": "{'raw': '<html>\\r\\n<head><title>502 Bad Gateway</title></head>\\r\\n<body>\\r\\n<center><h1>502 Bad Gateway</h1></center>\\r\\n<hr><center>nginx</center>\\r\\"}
 {"ts": "2026-07-31T12:01:17.683552+00:00", "coin": "ETH", "side": "BUY", "qty": 0.061, "ref_px": 1883.79, "target_frac": 0.012184, "http": 200, "orderId": 15303115659, "err": null}
+{"ts": "2026-07-31T14:16:58.934293+00:00", "coin": "BTC", "side": "BUY", "qty": 0.0032, "ref_px": 63600.0, "target_frac": -0.120205, "http": 200, "orderId": 25583139050, "err": null}
+{"ts": "2026-07-31T14:16:58.934293+00:00", "coin": "ETH", "side": "SELL", "qty": 0.107, "ref_px": 1866.0, "target_frac": -0.008036, "http": 200, "orderId": 15328600121, "err": null}
+{"ts": "2026-07-31T14:16:58.934293+00:00", "coin": "LINK", "side": "SELL", "qty": 1.29, "ref_px": 8.089, "target_frac": -0.03125, "http": 200, "orderId": 944185737, "err": null}
