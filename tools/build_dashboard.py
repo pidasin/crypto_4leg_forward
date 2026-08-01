@@ -164,6 +164,22 @@ def main():
     last_recon = recons[-1] if recons else {}
     recon_ok = last_recon.get("ok", False)
 
+    # ---------- 四腿淨曝險 ----------
+    # ★為什麼要有這格(2026-08-01): 曲線震盪度是由「四腿抵不抵銷」決定的, 不是由市場波動決定。
+    #   實測: 07/17~23 淨曝險≈0(溢價多+T腿多 對上 A腿空+DVOL空) → 組合年化波動 2.91%;
+    #         07/23~30 溢價腿翻空, 變成三腿空一腿多, 淨曝險 -0.43 → 波動 5.96% (翻倍),
+    #         同期 BTC 日波動 1.33%→1.29% 幾乎沒變 = 不是市場的錯, 是抵銷結構壞了。
+    #   這個變數決定了曲線的形狀, 卻是全儀表板唯一看不見的東西 → 補上。
+    def _net4(legs_snapshot):
+        return sum(C.LEG_WEIGHTS.get(lg, 0.0) * sum((d.get("pos") or {}).values())
+                   for lg, d in (legs_snapshot or {}).items())
+    net_pts = [(tw(n["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"),
+                round(_net4(n.get("legs")), 4)) for n in navs]
+    cur_net = net_pts[-1][1] if net_pts else 0.0
+    # |淨曝險| 越大 = 越像單向押注; 越接近0 = 四腿互相對沖
+    net_abs30 = [abs(v) for _, v in net_pts[-30:]]
+    net_avg = sum(net_abs30) / len(net_abs30) if net_abs30 else 0.0
+
     # ---------- 統計卡 ----------
     def card(label, val, sub="", cls=""):
         return f'<div class="card {cls}"><div class="cl">{label}</div><div class="cv">{val}</div><div class="cs">{sub}</div></div>'
@@ -179,6 +195,8 @@ def main():
         card("30日", pc(pct(equity, d30)), cls=g(pct(equity, d30))),
         card("目前回撤", f"{cur_dd:.2f}%", f"最深 {mdd:.2f}%", "neg" if cur_dd < -0.5 else ""),
         card("總曝險", f"${gross:,.0f}", f"槓桿 {lev:.2f}x"),
+        card("四腿淨曝險", f"{cur_net:+.3f}", f"近30筆|淨| {net_avg:.3f} · 0=完全對沖",
+             "neg" if abs(cur_net) > 0.25 else ""),
         card("成交", f"{len(ok_orders)} 筆", f"拒單 {len(rejected)}"),
         card("手續費(taker估)", f"${fee_est:,.2f}", f"{fee_est/base*100:.3f}%"),
         card("運行", f"{days:.1f} 天", f"快照 {len(eq)} 筆"),
@@ -196,7 +214,14 @@ def main():
         peak2 = max(peak2, e["equity"])
         dd_pts.append((tw(e["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"),
                        round((e["equity"] / peak2 - 1) * 100, 3)))
-    dd_svg = line_chart(dd_pts, h=120, color="#f87171", ylabel=f"{cur_dd:.2f}%")
+    # ★baseline=0: 沒有這條線就看不出「創新高→回撤歸零」發生在哪。
+    #   pad 會在上緣留 12% 空白, 所以 0% 不在圖頂; 而歸零常常只有單一格(180點畫700px,
+    #   手機上約2px) → 沒有參考線時肉眼完全無法判讀。
+    dd_svg = line_chart(dd_pts, h=120, color="#f87171", ylabel=f"{cur_dd:.2f}%",
+                        baseline=0.0)
+    # 淨曝險走勢: baseline=0 是關鍵參考 —— 貼著0=四腿互相對沖, 離0越遠=越像單向押注
+    net_svg = line_chart(net_pts, h=120, color="#a78bfa",
+                         ylabel=f"{cur_net:+.3f}", baseline=0.0)
 
     # ---------- 模擬(paper) vs 實際模擬金(testnet) 對照 ----------
     # 兩者都折算成「相對起始的報酬%」, 才能同軸比較 (本金不同: paper $10000 / testnet ~$5000)
@@ -456,6 +481,10 @@ tr:last-child td{{border:none}}
 <div class="sub" style="margin:6px 2px 0">目前 {cur_diff_s} · 平均 {avg_diff_s} · 這就是「理想回測 vs 真實執行」的全部差距</div>
 <h2>測試網實際部位 ({len(cur.get("positions", []))})</h2>{pos_table}
 <h2>四腿帳面 (paper)</h2>{leg_table}
+<h3 style="font-size:14px;margin:16px 0 4px">淨曝險走勢 <span class="sm">(四腿加權淨和 · 貼0=互相對沖, 離0=單向押注)</span></h3>
+{net_svg}
+<div class="sub" style="margin:6px 2px 0">目前 {cur_net:+.3f} · 近30筆平均|淨| {net_avg:.3f} ·
+這條線決定曲線的震盪度: 貼0時四腿互相抵銷, 離0時波動會放大 (實測淨曝險 0→-0.43 時組合波動由 2.91% 翻倍到 5.96%, 而同期BTC波動沒變)</div>
 <div style="margin:14px 0"><a href="./odds.html" style="display:block;background:#171a23;border-radius:10px;padding:13px;color:#4ade80;text-decoration:none;font-size:14px">🎚️ <b>勝率拉桿</b> — 拉一下看「持有N天賺錢機率多少」<span style="color:#6b7280;font-size:12px"> ›</span></a></div>
 <h2>⏳ 判決時鐘</h2>{clock_html}
 <h2>🩺 各腿生命徵象 <span class="sm">(機制監控, 比績效早發警訊)</span></h2>{legs_health}

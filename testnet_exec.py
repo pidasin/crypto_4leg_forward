@@ -46,8 +46,12 @@ def signed(method, path, params=None):
     p["recvWindow"] = 10000
     q = urlencode(p)
     sig = hmac.new(s.encode(), q.encode(), hashlib.sha256).hexdigest()
-    r = requests.request(method, f"{BASE}{path}?{q}&signature={sig}",
-                         headers={"X-MBX-APIKEY": k}, timeout=20)
+    try:
+        r = requests.request(method, f"{BASE}{path}?{q}&signature={sig}",
+                             headers={"X-MBX-APIKEY": k}, timeout=20)
+    except Exception as e:
+        # 連線層失敗(逾時/斷線): 用 code 0 表示「不知道對面收到沒有」
+        return 0, {"raw": f"{type(e).__name__}: {e}"[:200]}
     try:    return r.status_code, r.json()
     except Exception: return r.status_code, {"raw": r.text[:200]}
 
@@ -78,6 +82,42 @@ def min_trade_usd(symbol):
     f = filters().get(symbol)
     if f is None: return 1e9
     return max(f["min_notional"] * 1.1, 10.0)
+
+def place_order(symbol, side, qty, tag):
+    """下 MARKET 單, 對「暫時性故障」有韌性 —— 但絕不盲目重下。
+
+    ★為什麼不能盲目重試(2026-07-31 實例):
+      幣安測試網回了 502 Bad Gateway(nginx), 那是【閘道器】的錯誤頁, 不是交易所拒單。
+      真的拒單會回 JSON 加錯誤碼(-1013 名目太小 / -2019 保證金不足 / -1111 精度錯),
+      而 5xx 代表「請求可能已經到後端、只是回程斷了」→ 單子成交沒成交是【未知】的。
+      這種狀態下直接重送 = 有機率下成兩倍部位。
+
+    ★所以做法是「冪等 + 查證」:
+      1. 每張單帶 newClientOrderId (自己給的唯一ID)
+      2. 5xx / 連線失敗 → 不重送, 先用同一個ID去【查】這張單存不存在
+      3. 查到了 = 其實成功了, 直接採用
+      4. 查不到 = 確定沒進去, 才用【同一個ID】重送一次
+         (同ID重送若撞上競態, 交易所會以重複ID拒絕, 不會變成第二張單)
+      4xx 是交易所明確說不行 → 重送也是一樣的結果, 不重試。
+    """
+    cid = f"f4l{tag}{int(time.time()*1000)%10**10}"[:36]
+    params = dict(symbol=symbol, side=side, type="MARKET",
+                  quantity=f"{qty}", newClientOrderId=cid)
+    code, o = signed("POST", "/fapi/v1/order", params)
+    if code == 200 or not (code == 0 or code >= 500):
+        return code, o, cid, 0          # 成功, 或明確拒單(4xx) → 都不重試
+
+    # ---- 曖昧狀態: 先查證, 不重送 ----
+    time.sleep(2.0)
+    qcode, q = signed("GET", "/fapi/v1/order",
+                      dict(symbol=symbol, origClientOrderId=cid))
+    if qcode == 200 and q.get("orderId"):
+        return 200, q, cid, 1           # 其實成功了 —— 幸好沒重下
+
+    # ---- 確定沒進去, 用同一個ID重送一次 ----
+    code2, o2 = signed("POST", "/fapi/v1/order", params)
+    return code2, o2, cid, 2
+
 
 def round_qty(symbol, qty):
     f = filters().get(symbol)
@@ -168,17 +208,20 @@ def sync(book_positions, ts=None):
             out["skipped"].append(f"{coin}: 湊整後低於minQty")
             continue
         side = "BUY" if delta > 0 else "SELL"
-        code, o = signed("POST", "/fapi/v1/order", dict(
-            symbol=sym, side=side, type="MARKET", quantity=f"{qty}"))
+        code, o, cid, recovered = place_order(sym, side, qty, coin[:3].lower())
         rec = dict(ts=ts, coin=coin, side=side, qty=qty, ref_px=p,
                    target_frac=round(tgt.get(coin, 0.0), 6),
-                   http=code, orderId=o.get("orderId"),
+                   http=code, orderId=o.get("orderId"), cid=cid,
+                   recovered=recovered,   # 0=一次過 1=查證後發現其實成功 2=確認沒進去才重送
                    err=(None if code == 200 else str(o)[:150]))
         _append(ORDERS_F, rec)
         if code == 200:
-            out["orders"].append(f"{coin} {side} {qty}")
+            out["orders"].append(f"{coin} {side} {qty}" +
+                                 ("" if not recovered else f" (5xx已救回,方式{recovered})"))
         else:
-            out["errors"].append(f"{coin}: 下單被拒 {str(o)[:100]}")
+            # 區分兩種失敗: 交易所說不行(4xx) vs 對面掛了(5xx/連線)
+            kind = "下單被拒" if 400 <= code < 500 else "交易所無回應"
+            out["errors"].append(f"{coin}: {kind} HTTP{code} {str(o)[:80]}")
 
     # ---------- 對帳: 下單後實際 vs 帳面目標 ----------
     time.sleep(1.5)
