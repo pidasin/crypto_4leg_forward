@@ -1,132 +1,132 @@
 {
  "premium": {
-  "ts": "2026-08-07T11:00:46.639519+00:00",
+  "ts": "2026-08-07T11:48:09.911013+00:00",
   "ok": true,
   "diag": {
    "BTC": {
-    "prem_bp": -5.58,
+    "prem_bp": -7.62,
     "prem_std": 2.25,
-    "z": -0.03,
-    "pos": -0.0075,
+    "z": -0.076,
+    "pos": -0.0189,
     "bars": 800
    },
    "ETH": {
-    "prem_bp": -6.27,
+    "prem_bp": -6.05,
     "prem_std": 2.11,
-    "z": 0.115,
-    "pos": 0.0288,
+    "z": 0.121,
+    "pos": 0.0302,
     "bars": 800
    }
   }
  },
  "dvol": {
-  "ts": "2026-08-07T11:00:46.639519+00:00",
+  "ts": "2026-08-07T11:48:09.911013+00:00",
   "ok": true,
   "diag": {
-   "dvol": 34.37,
-   "z": -1.721,
-   "pos": -0.8604,
+   "dvol": 34.3,
+   "z": -1.776,
+   "pos": -0.8881,
    "bars": 801,
    "degraded": false
   }
  },
  "datafeed": {
   "binance_BTCUSDT_1h": {
-   "ts": "2026-08-07T11:00:46.639519+00:00",
+   "ts": "2026-08-07T11:48:09.911013+00:00",
    "source": "binance_BTCUSDT_1h",
    "ok": true,
    "latest": "2026-08-07 11:00:00",
-   "age_hours": 0.01,
+   "age_hours": 0.8,
    "note": "",
    "daily": false
   },
   "coinbase_BTC-USD": {
-   "ts": "2026-08-07T11:00:46.639519+00:00",
+   "ts": "2026-08-07T11:48:09.911013+00:00",
    "source": "coinbase_BTC-USD",
    "ok": true,
    "latest": "2026-08-07 11:00:00",
-   "age_hours": 0.01,
+   "age_hours": 0.8,
    "note": "",
    "daily": false
   },
   "binance_ETHUSDT_1h": {
-   "ts": "2026-08-07T11:00:46.639519+00:00",
+   "ts": "2026-08-07T11:48:09.911013+00:00",
    "source": "binance_ETHUSDT_1h",
    "ok": true,
    "latest": "2026-08-07 11:00:00",
-   "age_hours": 0.01,
+   "age_hours": 0.8,
    "note": "",
    "daily": false
   },
   "coinbase_ETH-USD": {
-   "ts": "2026-08-07T11:00:46.639519+00:00",
+   "ts": "2026-08-07T11:48:09.911013+00:00",
    "source": "coinbase_ETH-USD",
    "ok": true,
    "latest": "2026-08-07 11:00:00",
-   "age_hours": 0.01,
+   "age_hours": 0.8,
    "note": "",
    "daily": false
   },
   "deribit_dvol": {
-   "ts": "2026-08-07T11:00:46.639519+00:00",
+   "ts": "2026-08-07T11:48:09.911013+00:00",
    "source": "deribit_dvol",
    "ok": true,
    "latest": "2026-08-07 11:00:00",
-   "age_hours": 0.01,
+   "age_hours": 0.8,
    "note": "",
    "daily": false
   },
   "binance_ADAUSDT_1h": {
-   "ts": "2026-08-07T11:00:46.639519+00:00",
+   "ts": "2026-08-07T11:48:09.911013+00:00",
    "source": "binance_ADAUSDT_1h",
    "ok": true,
    "latest": "2026-08-07 11:00:00",
-   "age_hours": 0.01,
+   "age_hours": 0.8,
    "note": "",
    "daily": false
   },
   "binance_DOGEUSDT_1h": {
-   "ts": "2026-08-07T11:00:46.639519+00:00",
+   "ts": "2026-08-07T11:48:09.911013+00:00",
    "source": "binance_DOGEUSDT_1h",
    "ok": true,
    "latest": "2026-08-07 11:00:00",
-   "age_hours": 0.01,
+   "age_hours": 0.8,
    "note": "",
    "daily": false
   },
   "binance_LINKUSDT_1h": {
-   "ts": "2026-08-07T11:00:46.639519+00:00",
+   "ts": "2026-08-07T11:48:09.911013+00:00",
    "source": "binance_LINKUSDT_1h",
    "ok": true,
    "latest": "2026-08-07 11:00:00",
-   "age_hours": 0.01,
+   "age_hours": 0.8,
    "note": "",
    "daily": false
   },
   "binance_LTCUSDT_1h": {
-   "ts": "2026-08-07T11:00:46.639519+00:00",
+   "ts": "2026-08-07T11:48:09.911013+00:00",
    "source": "binance_LTCUSDT_1h",
    "ok": true,
    "latest": "2026-08-07 11:00:00",
-   "age_hours": 0.01,
+   "age_hours": 0.8,
    "note": "",
    "daily": false
   },
   "binance_SOLUSDT_1h": {
-   "ts": "2026-08-07T11:00:46.639519+00:00",
+   "ts": "2026-08-07T11:48:09.911013+00:00",
    "source": "binance_SOLUSDT_1h",
    "ok": true,
    "latest": "2026-08-07 11:00:00",
-   "age_hours": 0.01,
+   "age_hours": 0.8,
    "note": "",
    "daily": false
   },
   "binance_XLMUSDT_1h": {
-   "ts": "2026-08-07T11:00:46.639519+00:00",
+   "ts": "2026-08-07T11:48:09.911013+00:00",
    "source": "binance_XLMUSDT_1h",
    "ok": true,
    "latest": "2026-08-07 11:00:00",
-   "age_hours": 0.01,
+   "age_hours": 0.8,
    "note": "",
    "daily": false
   },
