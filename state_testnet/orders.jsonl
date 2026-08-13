@@ -482,3 +482,4 @@
 {"ts": "2026-08-13T16:00:11.158896+00:00", "coin": "BTC", "side": "BUY", "qty": 0.0022, "ref_px": 63524.4, "target_frac": -0.073572, "http": 200, "orderId": 28540013906, "cid": "f4lbtc6636813525", "recovered": 0, "err": null}
 {"ts": "2026-08-13T16:57:18.340139+00:00", "coin": "BTC", "side": "SELL", "qty": 0.0014, "ref_px": 63063.0, "target_frac": -0.082093, "http": 200, "orderId": 28540075252, "cid": "f4lbtc6640241056", "recovered": 0, "err": null}
 {"ts": "2026-08-13T16:57:18.340139+00:00", "coin": "ETH", "side": "BUY", "qty": 0.018, "ref_px": 1873.46, "target_frac": -0.009904, "http": 200, "orderId": 16759968567, "cid": "f4leth6640241331", "recovered": 0, "err": null}
+{"ts": "2026-08-13T17:58:00.966786+00:00", "coin": "BTC", "side": "SELL", "qty": 0.0011, "ref_px": 63179.9, "target_frac": -0.08951, "http": 200, "orderId": 28540123146, "cid": "f4lbtc6643883002", "recovered": 0, "err": null}
