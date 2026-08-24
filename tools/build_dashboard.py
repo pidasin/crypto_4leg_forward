@@ -4,7 +4,7 @@
 ★每小時由 hourly workflow 重建; 頁面本身每5分鐘自動刷新
 ★純SVG手刻圖表, 零外部依賴, 手機優先
 """
-import json, os, sys
+import json, os, sys, math
 from datetime import datetime, timezone, timedelta
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -209,6 +209,12 @@ def main():
     eq_pts = [(tw(e["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"), e["equity"]) for e in eq]
     eq_svg = line_chart(eq_pts, color="#4ade80" if pnl >= 0 else "#f87171",
                         ylabel=f"${equity:,.2f}", baseline=base)
+    # ★對數權益圖: 同一份資料, y軸換成log後再線性內插 → 等比例(%)漲跌在圖上等高。
+    #   線性圖上, 早期本金小時的波動會被近期較大的絕對金額壓得看不出來; log視角修正這個。
+    eq_pts_log = [(lbl, math.log(v)) for lbl, v in eq_pts if v > 0]
+    eq_svg_log = line_chart(eq_pts_log, color="#4ade80" if pnl >= 0 else "#f87171",
+                            ylabel=f"${equity:,.2f}",
+                            baseline=math.log(base) if base > 0 else None)
     dd_pts, peak2 = [], -1e18
     for e in eq:
         peak2 = max(peak2, e["equity"])
@@ -224,10 +230,19 @@ def main():
                          ylabel=f"{cur_net:+.3f}", baseline=0.0)
 
     # ---------- 模擬(paper) vs 實際模擬金(testnet) 對照 ----------
-    # 兩者都折算成「相對起始的報酬%」, 才能同軸比較 (本金不同: paper $10000 / testnet ~$5000)
+    # ★2026-08-24 修正: 舊版把testnet換算成「相對testnet自己本金的報酬%」(equity/tn_base-1)。
+    #   但testnet的美元部位名目是用 C.CAPITAL_USD($10000, 跟paper同一套權重×10000) 訂出來的,
+    #   testnet實際本金卻只有 tn_base(~$5000, 約一半) —— 兩邊部位名目同源, 分母卻不同,
+    #   導致 tn_r 系統性放大成 pa_r 的 ~1.86倍(實測迴歸 tn_r=1.86·pa_r+0.02, R²=0.997)。
+    #   後果: 下面的「追蹤誤差」(tn_r-pa_r) 幾乎完全等於 0.86·pa_r 的縮放版(對pa_r迴歸R²=0.984)
+    #   ——長得像獨立的執行誤差線, 其實只是損益曲線被放大後再減自己, 真正的誤差被蓋掉了。
+    #   修法: testnet也用【美元損益 / CAPITAL_USD】, 跟paper用同一個分母比較 —— 兩邊才是
+    #   「同一套$10000名目部位規則下, 理想成交 vs 真實成交」的公平比較。
+    #   修正後 diff 對 pa_r 的迴歸R²從0.984掉到0.608, 標準差從2.17%收斂到0.22%,
+    #   這時候的曲線才是看得出來的真實追蹤誤差。
     tn_base = first.get("equity") or base
     tn_ret = [(tw(e["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"),
-               round((e["equity"] / tn_base - 1) * 100, 4)) for e in eq]
+               round((e["equity"] - tn_base) / C.CAPITAL_USD * 100, 4)) for e in eq]
     pa_ret = [(tw(n["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"),
                round((n.get("total_nav", 1.0) - 1) * 100, 4)) for n in navs]
     cmp_svg = dual_chart(
@@ -245,7 +260,7 @@ def main():
         if not cand: continue
         j = min(cand, key=lambda j: abs((nav_ts[j] - et).total_seconds()))
         if abs((nav_ts[j] - et).total_seconds()) > 1800: continue
-        tn_r = (e["equity"] / tn_base - 1) * 100
+        tn_r = (e["equity"] - tn_base) / C.CAPITAL_USD * 100
         pa_r = (navs[j].get("total_nav", 1.0) - 1) * 100
         diffs.append((tw(e["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"), round(tn_r - pa_r, 4)))
     cur_diff = diffs[-1][1] if diffs else None
@@ -444,6 +459,9 @@ h1{{font-size:17px;color:#9ca3af;font-weight:600}}
 .card.pos .cv{{color:#4ade80}}.card.neg .cv{{color:#f87171}}
 h2{{font-size:14px;color:#9ca3af;margin:20px 0 8px;border-left:3px solid #3b4252;padding-left:8px}}
 .chart{{width:100%;height:auto;background:#171a23;border-radius:10px}}
+.chartToggle{{display:flex;gap:6px;margin:10px 0 6px}}
+.ctbtn{{background:#171a23;color:#6b7280;border:1px solid #2a2f3a;border-radius:8px;padding:5px 12px;font-size:12px}}
+.ctbtn.active{{color:#0f1117;background:#4ade80;border-color:#4ade80;font-weight:700}}
 table{{width:100%;border-collapse:collapse;background:#171a23;border-radius:10px;overflow:hidden;font-size:13px}}
 th{{color:#6b7280;font-size:11px;text-align:left;padding:8px;border-bottom:1px solid #2a2f3a}}
 td{{padding:8px;border-bottom:1px solid #1f2430}}
@@ -470,7 +488,20 @@ tr:last-child td{{border:none}}
 <h1>四腿 forward — 合約測試網模擬金</h1>
 <div class="big" style="color:{pnl_color}">${equity:,.2f}</div>
 <div class="sub">{money(pnl)} ({pnl_pct:+.2f}%) · 更新 {now_tw} 台北{stale_s}</div>
-{eq_svg}
+<div class="chartToggle">
+<button type="button" class="ctbtn active" id="ctbtn-lin" onclick="showEqChart('lin')">線性</button>
+<button type="button" class="ctbtn" id="ctbtn-log" onclick="showEqChart('log')">對數</button>
+</div>
+<div id="eqchart-lin">{eq_svg}</div>
+<div id="eqchart-log" style="display:none">{eq_svg_log}</div>
+<script>
+function showEqChart(which){{
+  document.getElementById('eqchart-lin').style.display = which==='lin' ? '' : 'none';
+  document.getElementById('eqchart-log').style.display = which==='log' ? '' : 'none';
+  document.getElementById('ctbtn-lin').classList.toggle('active', which==='lin');
+  document.getElementById('ctbtn-log').classList.toggle('active', which==='log');
+}}
+</script>
 <div class="grid">{cards}</div>
 <h2>回撤</h2>{dd_svg}
 <h2>模擬 vs 實際模擬金 <span class="sm">(同軸累積報酬%, 兩線越貼=執行摩擦越小)</span></h2>
