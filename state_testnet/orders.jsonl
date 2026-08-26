@@ -784,3 +784,4 @@
 {"ts": "2026-08-25T20:30:27.358137+00:00", "coin": "DOGE", "side": "SELL", "qty": 115.0, "ref_px": 0.08771, "target_frac": -0.015625, "http": 200, "orderId": 2327139933, "cid": "f4ldog7689830207", "recovered": 0, "err": null}
 {"ts": "2026-08-25T21:29:17.876263+00:00", "coin": "ADA", "side": "SELL", "qty": 63.0, "ref_px": 0.2085, "target_frac": -0.015625, "http": 200, "orderId": 1299041573, "cid": "f4lada7693360339", "recovered": 0, "err": null}
 {"ts": "2026-08-25T21:29:17.876263+00:00", "coin": "ETH", "side": "BUY", "qty": 0.013, "ref_px": 2430.23, "target_frac": 0.192708, "http": 200, "orderId": 16772721362, "cid": "f4leth7693360534", "recovered": 0, "err": null}
+{"ts": "2026-08-26T03:06:04.159839+00:00", "coin": "ETH", "side": "SELL", "qty": 0.009, "ref_px": 2463.88, "target_frac": 0.192708, "http": 200, "orderId": 16772954111, "cid": "f4leth7713567706", "recovered": 0, "err": null}
