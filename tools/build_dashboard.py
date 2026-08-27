@@ -245,10 +245,19 @@ def main():
                round((e["equity"] - tn_base) / C.CAPITAL_USD * 100, 4)) for e in eq]
     pa_ret = [(tw(n["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"),
                round((n.get("total_nav", 1.0) - 1) * 100, 4)) for n in navs]
-    cmp_svg = dual_chart(
-        [("模擬 paper", "#4ade80", pa_ret),
-         ("實際模擬金 testnet", "#60a5fa", tn_ret)],
-        ylabel="累積報酬 %")
+    # ★對照組: 買進持有BTC不動 — 用nav.jsonl本來就有的prices.BTC, 不必抓新資料源。
+    #   同一根k棒對齊paper的起點, 兩邊比的才是「同一天開始, 動 vs 不動」。
+    btc0 = navs[0].get("prices", {}).get("BTC") if navs else None
+    bh_ret = ([(tw(n["ts"], "%m/%d %H:%M" if days < 3 else "%m/%d"),
+                round((n.get("prices", {}).get("BTC", btc0) / btc0 - 1) * 100, 4)) for n in navs]
+              if btc0 else [])
+    cmp_series = [("模擬 paper", "#4ade80", pa_ret),
+                  ("實際模擬金 testnet", "#60a5fa", tn_ret)]
+    if bh_ret: cmp_series.append(("買進持有BTC", "#f97316", bh_ret))
+    cmp_svg = dual_chart(cmp_series, ylabel="累積報酬 %")
+    bh_now = bh_ret[-1][1] if bh_ret else None
+    pa_now = pa_ret[-1][1] if pa_ret else None
+    bh_excess = (pa_now - bh_now) if (bh_now is not None and pa_now is not None) else None
     # 追蹤誤差: 用最近鄰把兩序列對齊, 算 testnet − paper
     import bisect
     nav_ts = [_dt(n["ts"]) for n in navs]
@@ -504,9 +513,12 @@ function showEqChart(which){{
 </script>
 <div class="grid">{cards}</div>
 <h2>回撤</h2>{dd_svg}
-<h2>模擬 vs 實際模擬金 <span class="sm">(同軸累積報酬%, 兩線越貼=執行摩擦越小)</span></h2>
+<h2>模擬 vs 實際模擬金 vs 買進持有 <span class="sm">(同軸累積報酬%)</span></h2>
 {cmp_svg}
-<div class="sub" style="margin:6px 2px 0">綠=模擬paper(完美成交假設) · 藍=實際模擬金testnet(真下單, 含滑點與最小下單量卡單)</div>
+<div class="sub" style="margin:6px 2px 0">綠=模擬paper(完美成交假設) · 藍=實際模擬金testnet(真下單,含滑點與最小下單量卡單) · 橘=買進持有BTC不動(同一天起算)</div>
+<div class="sub" style="margin:2px 2px 0">paper {f"{pa_now:+.2f}%" if pa_now is not None else "—"} vs 買進持有 {f"{bh_now:+.2f}%" if bh_now is not None else "—"}
+→ 超額 {f"{bh_excess:+.2f}%" if bh_excess is not None else "—"}
+<span class="sm">(正值=四腿贏過純抱BTC,負值=不如不動;判決仍在12個月,現階段僅供參考不代表結論)</span></div>
 <h3 style="font-size:14px;margin:16px 0 4px">追蹤誤差 <span class="sm">(testnet − paper, 負值=執行成本, 越平穩越好)</span></h3>
 {diff_svg}
 <div class="sub" style="margin:6px 2px 0">目前 {cur_diff_s} · 平均 {avg_diff_s} · 這就是「理想回測 vs 真實執行」的全部差距</div>
