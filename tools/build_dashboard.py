@@ -529,6 +529,7 @@ function showEqChart(which){{
 <div class="sub" style="margin:6px 2px 0">目前 {cur_net:+.3f} · 近30筆平均|淨| {net_avg:.3f} ·
 這條線決定曲線的震盪度: 貼0時四腿互相抵銷, 離0時波動會放大 (實測淨曝險 0→-0.43 時組合波動由 2.91% 翻倍到 5.96%, 而同期BTC波動沒變)</div>
 <div style="margin:14px 0"><a href="./odds.html" style="display:block;background:#171a23;border-radius:10px;padding:13px;color:#4ade80;text-decoration:none;font-size:14px">🎚️ <b>勝率拉桿</b> — 拉一下看「持有N天賺錢機率多少」<span style="color:#6b7280;font-size:12px"> ›</span></a></div>
+<div style="margin:14px 0"><a href="./history.html" style="display:block;background:#171a23;border-radius:10px;padding:13px;color:#60a5fa;text-decoration:none;font-size:14px">📅 <b>完整歷史</b> — 自選任意區間, 看該期間全部指標與損益圖<span style="color:#6b7280;font-size:12px"> ›</span></a></div>
 <h2>⏳ 判決時鐘</h2>{clock_html}
 <h2>🩺 各腿生命徵象 <span class="sm">(機制監控, 比績效早發警訊)</span></h2>{legs_health}
 <h2>📡 資料源</h2>{feed_table}

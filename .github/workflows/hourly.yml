@@ -31,6 +31,7 @@ jobs:
         run: |
           python tools/build_dashboard.py
           python tools/build_odds.py
+          python tools/build_history.py
       - name: Commit state
         if: always()
         run: |
