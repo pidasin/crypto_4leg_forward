@@ -142,12 +142,15 @@ a{{color:#60a5fa}}
 <a href="./index.html">← 回即時儀表板</a></div>
 
 <div class="warn">
-⚠️ <b>兩段資料方法論不同, 不可當成同一條連續紀錄</b><br>
-<b>2021-04-23 ~ 2026-07-16 = 日線【重建】</b>: production 實際用小時線+24h平滑, 這裡用日線近似;
-<b>且完全未扣交易成本</b>(定案回測扣 maker 混合 2.45bp)。因此重建段的 Sharpe 會系統性偏高
-—— 實測重建 2.44 vs 定案回測 2.10, 差距主要來自此。<b>看趨勢與相對關係可以, 別把絕對數字當成真實績效。</b><br>
-<b>2026-07-17 起 = 真實執行紀錄</b>(綠色標記線右側), 來自 state/nav.jsonl, 已含真實成本, 這才是有判決效力的資料。<br>
-<b>誠實預期仍是 Sharpe {C.HONEST["honest_sharpe"]}</b>(定案 2.10 打折後), 判決在 12 個月。
+⚠️ <b>三件事必須先知道, 否則會誤讀這頁的數字</b><br>
+<b>① 早期不是四腿</b>: 各腿誕生日不同(溢價 2017-09 · T腿 2017-10 · A腿 2018-02 需FNG · <b>DVOL 2021-04</b>)。
+組合報酬 = <b>當天實際存在的腿等權平均</b>(只有2腿就各50%)。
+<b>所以 2021-04 之前跟之後不是同一個策略組態</b>, 區間摘要會標示腿數組成。<br>
+<b>② 重建段未扣成本</b>: 2026-07-16 以前是日線【重建】(production 用小時線+24h平滑),
+<b>且完全未扣交易成本</b>(定案回測扣 maker 混合 2.45bp) → Sharpe 系統性偏高。
+<b>看趨勢與相對關係可以, 別把絕對數字當真實績效。</b><br>
+<b>③ 只有 2026-07-17 之後有判決效力</b>(綠色標記線右側), 來自 state/nav.jsonl 真實執行紀錄, 已含真實成本。
+誠實預期 Sharpe {C.HONEST["honest_sharpe"]}(定案 2.10 打折後), 判決在 12 個月。
 </div>
 
 <div class="ctl">
@@ -208,7 +211,17 @@ const D = {data_js};
 const S = D.series, LEGS = D.legs, NM = D.names, W = D.weights;
 const LIVE0 = D.live_start;
 
-function combo(r) {{ let s=0; for (const l of LEGS) s += (W[l]||0.25)*(r[l]||0); return s; }}
+/* ★組合報酬 = 【當天實際存在的腿】的等權平均(重新正規化)
+   null = 該腿當天還沒誕生(DVOL 2021-04才有 / A腿需FNG 2018-02才有), 不是報酬0。
+   若當成0會把「不存在」誤算成「持平的一條腿」, 稀釋掉其他腿的表現。 */
+function combo(r) {{
+  let s=0, n=0;
+  for (const l of LEGS) {{ const v=r[l]; if (v!==null && v!==undefined) {{ s+=v; n++; }} }}
+  return n ? s/n : 0;
+}}
+function nLegs(r) {{
+  let n=0; for (const l of LEGS) if (r[l]!==null && r[l]!==undefined) n++; return n;
+}}
 
 function fmt(v,d=2){{ return (v>=0?"+":"") + v.toFixed(d); }}
 function cls(v){{ return v>=0 ? "pos" : "neg"; }}
@@ -277,11 +290,16 @@ function svgLine(pts, opts) {{
   return s;
 }}
 
+/* 只用兩腿【同時都存在】的日子算相關; null不可當0(會製造假相關) */
 function corr(a,b) {{
-  const n=a.length; if(n<10) return null;
-  const ma=a.reduce((x,y)=>x+y,0)/n, mb=b.reduce((x,y)=>x+y,0)/n;
+  const A=[],B=[];
+  for(let i=0;i<a.length;i++){{
+    if(a[i]!==null&&a[i]!==undefined&&b[i]!==null&&b[i]!==undefined){{ A.push(a[i]); B.push(b[i]); }}
+  }}
+  const n=A.length; if(n<10) return null;
+  const ma=A.reduce((x,y)=>x+y,0)/n, mb=B.reduce((x,y)=>x+y,0)/n;
   let va=0,vb=0,cv=0;
-  for(let i=0;i<n;i++){{ va+=(a[i]-ma)**2; vb+=(b[i]-mb)**2; cv+=(a[i]-ma)*(b[i]-mb); }}
+  for(let i=0;i<n;i++){{ va+=(A[i]-ma)**2; vb+=(B[i]-mb)**2; cv+=(A[i]-ma)*(B[i]-mb); }}
   return (va>0&&vb>0) ? cv/Math.sqrt(va*vb) : null;
 }}
 
@@ -293,8 +311,13 @@ function render() {{
     ['cards','eqchart','ddchart','legtable','corrtable','periodtable'].forEach(i=>document.getElementById(i).innerHTML='');
     return; }}
   const nRecon = rows.filter(r=>r.src==='recon').length, nLive = rows.filter(r=>r.src==='live').length;
+  const lc = {{}}; rows.forEach(r=>{{ const k=nLegs(r); lc[k]=(lc[k]||0)+1; }});
+  const lcTxt = Object.keys(lc).sort().reverse().map(k=>`${{k}}腿 ${{lc[k]}}天`).join(' · ');
+  const mixed = Object.keys(lc).length > 1;
   R.innerHTML = `<b>${{rows[0].d}} → ${{rows[rows.length-1].d}}</b> · 共 ${{st.n}} 天 ` +
-    `(重建 ${{nRecon}} 天 / <span class="pos">真實執行 ${{nLive}} 天</span>)`;
+    `(重建 ${{nRecon}} 天 / <span class="pos">真實執行 ${{nLive}} 天</span>)<br>` +
+    `<span class="${{mixed?'neg':'sm'}}">組成: ${{lcTxt}}` +
+    (mixed ? ' ← 此區間腿數不一致, 前後不是同一個策略組態, 比較時要留意' : '') + '</span>';
 
   const excess = st.bh!==null ? (st.tot-st.bh)*100 : null;
   document.getElementById('cards').innerHTML = [
@@ -325,25 +348,35 @@ function render() {{
     svgLine(ddPts, {{base:0, color:'#f87171', h:150, yfmt:v=>v.toFixed(0)+'%'}});
 
   // 各腿
-  let lt = '<table><tr><th>腿</th><th>總報酬</th><th>年化</th><th>波動</th><th>Sharpe</th><th>勝率</th><th>平均淨部位</th></tr>';
+  let lt = '<table><tr><th>腿</th><th>有效天數</th><th>總報酬</th><th>年化</th><th>波動</th><th>Sharpe</th><th>勝率</th><th>平均淨部位</th></tr>';
   for (const l of LEGS) {{
-    const rr = rows.map(r=>r[l]||0);
+    /* ★只取該腿真的存在的日子, null 不能當0 */
+    const rr = rows.map(r=>r[l]).filter(v=>v!==null&&v!==undefined);
+    if (rr.length < 2) {{
+      lt += `<tr><td><b>${{NM[l]}}</b></td><td class="sm">0</td><td colspan="6" class="sm">此區間尚未誕生</td></tr>`;
+      continue;
+    }}
     let e=1; for(const x of rr) e*=(1+x);
-    const yrs=rows.length/365, cg=yrs>0?Math.pow(e,1/yrs)-1:0;
+    const yrs=rr.length/365, cg=yrs>0?Math.pow(e,1/yrs)-1:0;
     const m=rr.reduce((a,b)=>a+b,0)/rr.length;
     const sd=Math.sqrt(rr.reduce((a,b)=>a+(b-m)**2,0)/(rr.length-1));
     const vol=sd*Math.sqrt(365), sh=vol>0?cg/vol:0;
     const wr=rr.filter(x=>x>0).length/rr.length*100;
-    const nn=rows.map(r=>r[l+'_n']||0).reduce((a,b)=>a+b,0)/rows.length;
-    lt += `<tr><td><b>${{NM[l]}}</b></td><td class="${{cls(e-1)}}">${{fmt((e-1)*100)}}%</td>`+
+    const nvs=rows.map(r=>r[l+'_n']).filter(v=>v!==null&&v!==undefined);
+    const nn=nvs.length?nvs.reduce((a,b)=>a+b,0)/nvs.length:0;
+    const partial = rr.length < rows.length;
+    lt += `<tr><td><b>${{NM[l]}}</b></td>`+
+          `<td class="sm">${{rr.length}}${{partial?' <span class="neg">(部分)</span>':''}}</td>`+
+          `<td class="${{cls(e-1)}}">${{fmt((e-1)*100)}}%</td>`+
           `<td class="${{cls(cg)}}">${{fmt(cg*100)}}%</td><td>${{(vol*100).toFixed(1)}}%</td>`+
           `<td class="${{cls(sh)}}">${{fmt(sh,2)}}</td><td>${{wr.toFixed(0)}}%</td>`+
           `<td class="${{cls(nn)}}">${{fmt(nn,3)}}</td></tr>`;
   }}
-  document.getElementById('legtable').innerHTML = lt+'</table>';
+  document.getElementById('legtable').innerHTML = lt+
+    '</table><div class="sm" style="margin-top:6px">「部分」= 該腿在此區間並非全程存在(溢價腿2017-09起 · T腿2017-10起 · A腿2018-02起需FNG · DVOL腿2021-04起)</div>';
 
-  // 相關矩陣
-  const ser = {{}}; for (const l of LEGS) ser[l]=rows.map(r=>r[l]||0);
+  // 相關矩陣 (只用兩腿【同時存在】的日子)
+  const ser = {{}}; for (const l of LEGS) ser[l]=rows.map(r=>r[l]);
   let ct = '<table><tr><th></th>'+LEGS.map(l=>`<th>${{NM[l]}}</th>`).join('')+'</tr>';
   for (let i=0;i<LEGS.length;i++) {{
     ct += `<tr><td class="sm"><b>${{NM[LEGS[i]]}}</b></td>`;
