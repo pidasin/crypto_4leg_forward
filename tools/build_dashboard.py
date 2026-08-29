@@ -351,45 +351,112 @@ def main():
     t_above = sum(1 for v in td_.values() if isinstance(v, dict) and v.get("above"))
     t_total = sum(1 for v in td_.values() if isinstance(v, dict) and "above" in v)
 
+    # ---- 各腿「部位凍結天數」 ----
+    # ★為什麼需要(2026-08-29): A腿曾連續31天/229筆紀錄部位完全沒動, 而儀表板全綠。
+    #   原因: positions.json 的 _meta 記的是「這條腿被【重算】的時間」, 不是「部位真的
+    #   【變動】的時間」—— 它每小時都被重算, 所以永遠看起來很新鮮。
+    #   但判決時鐘前6個月的規則是「只看機制不看賺賠」, 而「這條腿還在動嗎」正是機制層
+    #   最核心的問題。腿長期不動 = z分數失去區辨力(config LAYER2 已有此概念但沒被監控)。
+    def frozen_days(leg):
+        """回溯 nav.jsonl, 算該腿距離上次【部位實際變動】幾天。None=歷史中從未變動過"""
+        last = None; last_ts = None
+        for n in reversed(navs):
+            p = json.dumps((n.get("legs", {}).get(leg) or {}).get("pos", {}), sort_keys=True)
+            if last is None:
+                last = p; last_ts = n["ts"]; continue
+            if p != last:
+                return (_dt(navs[-1]["ts"]) - _dt(last_ts)).total_seconds() / 86400, last_ts
+            last_ts = n["ts"]
+        return None, None
+
+    frozen = {}
+    for _leg in ["premium", "dvol", "aleg", "tleg"]:
+        frozen[_leg] = frozen_days(_leg)
+
+    def frozen_vital(leg):
+        """部位凍結天數: >30天轉黃, >60天轉紅。這是機制層警訊, 與賺賠無關。"""
+        d_, ts_ = frozen[leg]
+        if d_ is None:
+            n_days = (_dt(navs[-1]["ts"]) - _dt(navs[0]["ts"])).total_seconds()/86400 if len(navs) > 1 else 0
+            return vital("部位凍結", f"⚠️ 全期{n_days:.0f}天未動", False,
+                         "從上線至今部位一次都沒變過 = z分數可能失去區辨力")
+        ok = d_ <= 30
+        tag = "" if d_ <= 30 else ("⚠️ " if d_ <= 60 else "🔴 ")
+        return vital("部位凍結", f"{tag}{d_:.1f} 天未動", ok,
+                     f"上次變動 {tw(ts_)} · >30天黃燈 >60天紅燈")
+
     legs_health = f"""
 <div class="hgrid">
 <div class="hcard"><div class="ht">🟦 溢價腿 <span class="sm">擇時·非套利</span></div>
 {vital("溢價std", f"{prem_std}bp" if prem_std is not None else "—", (prem_std or 0) <= C.LAYER2["premium_std_high"], f"警戒>{C.LAYER2['premium_std_high']}bp·變小=健康")}
-{"".join(vital(f"z {k}", f"{v:+.2f}", abs(v or 0) < 1.9, "貼±2=釘住" if abs(v or 0) >= 1.9 else "") for k, v in prem_zs.items())}</div>
+{"".join(vital(f"z {k}", f"{v:+.2f}", abs(v or 0) < 1.9, "貼±2=釘住" if abs(v or 0) >= 1.9 else "") for k, v in prem_zs.items())}
+{frozen_vital("premium")}</div>
 <div class="hcard"><div class="ht">🟨 DVOL腿 <span class="sm">恐慌=買</span></div>
 {vital("DVOL", dd_.get("dvol", "—"))}
 {vital("z", f"{dd_.get('z', 0):+.2f}" if dd_.get("z") is not None else "—", abs(dd_.get("z") or 0) < 1.9)}
 {vital("資料", "⚠️降級(備援)" if dd_.get("degraded") else "官方正常", not dd_.get("degraded"))}
+{frozen_vital("dvol")}
 {vital("特別條款", "BTC週跌>15%而本腿沒賺→立即處決", None)}</div>
 <div class="hcard"><div class="ht">🟩 A腿 <span class="ht_sm"></span><span class="sm">CB×FNG四象限</span></div>
 {vital("FNG", f"{fng_v} ({'貪婪' if (fng_v or 0) > C.ALEG['fng_threshold'] else '平淡'})" if fng_v is not None else "—", fng_v is not None, "alternative.me·最脆弱資料源")}
-{vital("狀態", "⚠️降級(純CB多空 Sh0.96)" if ad_.get("degraded") else "四象限正常", not ad_.get("degraded"))}</div>
+{vital("狀態", "⚠️降級(純CB多空 Sh0.96)" if ad_.get("degraded") else "四象限正常", not ad_.get("degraded"))}
+{frozen_vital("aleg")}</div>
 <div class="hcard"><div class="ht">🟥 T腿 <span class="sm">⚠️觀察中(ETF後1.78→0.58)</span></div>
 {vital("SMA50上方", f"{t_above}/{t_total} 幣" if t_total else "—", None)}
+{frozen_vital("tleg")}
 {vital("判準", "forward持續<0.3→12月砍", None)}</div>
 </div>"""
 
     # ---- 資料源狀態 ----
     feeds = sd.get("datafeed", {})
-    KNOWN = [("coinbase_", "Coinbase", "溢價腿+A腿的分子"), ("binance_", "幣安行情", "全部腿的價格基準"),
-             ("deribit", "Deribit DVOL", "DVOL腿·有選擇權鏈備援"), ("fng", "FNG (alternative.me)", "A腿·掛了自動降級純CB")]
+    # ★備援獨立性(2026-08-29 實測發現): Deribit 整站503時, 官方DVOL 與「選擇權鏈自算備援」
+    #   【同時】掛掉 —— 因為兩者都在 deribit.com。這是偽裝成冗餘的單點故障, 而且必然
+    #   發生在最需要它的時候(市場恐慌→Deribit過載→兩個一起死)。
+    #   快取只能撐48h, 之後該腿空手。故在此明確標示備援主機是否獨立。
+    KNOWN = [
+        ("coinbase_", "Coinbase", "溢價腿+A腿的分子", "Bitstamp", True),
+        ("binance_",  "幣安行情",  "全部腿的價格基準", "—(主資料源)", None),
+        ("deribit",   "Deribit DVOL", "DVOL腿", "選擇權鏈自算(同在deribit.com)", False),
+        ("fng",       "FNG (alternative.me)", "A腿", "降級為純CB多空(Sh0.96)", True),
+    ]
     feed_rows = []
-    for prefix, name, role in KNOWN:
+    for prefix, name, role, backup, indep in KNOWN:
         recs = [v for k, v in feeds.items() if k.startswith(prefix)]
+        if indep is True:   bk = f'<span class="pos">✅ 獨立</span> · {backup}'
+        elif indep is False: bk = f'<span class="neg">🔴 同主機</span> · {backup}'
+        else:                bk = f'<span class="sm">{backup}</span>'
         if not recs:
-            feed_rows.append(f'<tr><td>{name}</td><td>—</td><td class="sm">尚無記錄</td><td class="sm">{role}</td></tr>'); continue
+            feed_rows.append(f'<tr><td>{name}</td><td>—</td><td class="sm">尚無記錄</td>'
+                             f'<td class="sm">{role}</td><td class="sm">{bk}</td></tr>'); continue
         ok = all(r.get("ok") for r in recs)
         ages = [r.get("age_hours") for r in recs if r.get("age_hours") is not None]
         age_s = f"{max(ages):.1f}h前" if ages else "—"
         st = "✅" if ok else "🔴"
-        feed_rows.append(f'<tr><td>{name}</td><td>{st}</td><td class="sm">{age_s}</td><td class="sm">{role}</td></tr>')
-    feed_table = f'<table><tr><th>來源</th><th>狀態</th><th>最新資料</th><th>角色</th></tr>{"".join(feed_rows)}</table>'
+        feed_rows.append(f'<tr><td>{name}</td><td>{st}</td><td class="sm">{age_s}</td>'
+                         f'<td class="sm">{role}</td><td class="sm">{bk}</td></tr>')
+    feed_table = (f'<table><tr><th>來源</th><th>狀態</th><th>最新資料</th><th>角色</th><th>備援</th></tr>'
+                  f'{"".join(feed_rows)}</table>'
+                  f'<div class="sm" style="margin-top:6px">🔴 同主機 = 主來源掛掉時備援會【一起掛】。'
+                  f'2026-08-18 實測: Deribit整站503, 官方DVOL與選擇權鏈備援同時失效, 靠48h快取撐住。</div>')
 
-    # ---- 腿間相關性 (30天滾動, 從paper逐時報酬) ----
+    # ---- 腿間相關性 ----
+    # ★2026-08-29 修正: 舊版寫 navs[-720:] 並標成「30天」, 假設每天24筆。
+    #   但實測更新頻率只有約17筆/天(GitHub排程到達率), 720筆實際橫跨約41天;
+    #   且全期至今總筆數還不到720, 等於【從上線到現在根本沒真的縮過窗】——
+    #   標籤說30天, 實際卻是「全部歷史」, 兩者不符。
+    #   改為用真實日曆天數篩選, 並讓標籤誠實顯示實際跨度與筆數。
     LEG_ORDER = ["premium", "dvol", "aleg", "tleg"]
     SHORT = {"premium": "溢價", "dvol": "DVOL", "aleg": "A腿", "tleg": "T腿"}
+    CORR_DAYS = 30
+    if navs:
+        _cutoff = _dt(navs[-1]["ts"]) - timedelta(days=CORR_DAYS)
+        corr_navs = [n for n in navs if _dt(n["ts"]) >= _cutoff]
+    else:
+        corr_navs = []
+    _span_d = ((_dt(corr_navs[-1]["ts"]) - _dt(corr_navs[0]["ts"])).total_seconds()/86400
+               if len(corr_navs) > 1 else 0.0)
     series = {l: [] for l in LEG_ORDER}
-    for n in navs[-720:]:
+    for n in corr_navs:
         for l in LEG_ORDER:
             series[l].append((n.get("legs", {}).get(l) or {}).get("pnl_pct", 0.0))
     def corr(a, b):
@@ -413,7 +480,15 @@ def main():
         corr_cells.append("<tr>" + "".join(row) + "</tr>")
     hdr = "".join(f"<th>{SHORT[l]}</th>" for l in LEG_ORDER)
     n_pts = len(series["premium"])
-    corr_note = f'需72筆起算 (目前{n_pts}筆)' if n_pts < 72 else f'警戒>{C.LAYER2["leg_corr_max"]} · 回測基準0.002~0.31 · 同時升高=分散失效'
+    # 相關係數的抽樣誤差 ≈ 1/sqrt(n-3); n小的時候光靠雜訊就能跑出很大的值
+    _se = (1.0 / ((n_pts - 3) ** 0.5)) if n_pts > 4 else None
+    if n_pts < 72:
+        corr_note = f'需72筆起算 (目前僅{n_pts}筆)'
+    else:
+        corr_note = (f'警戒>{C.LAYER2["leg_corr_max"]} · 回測基準0.002~0.31 · 同時升高=分散失效'
+                     f'<br>實際視窗: 近{CORR_DAYS}天 = {n_pts}筆 (橫跨{_span_d:.1f}天)'
+                     + (f' · 抽樣誤差±{1.96*_se:.2f}(95%) —— 真實相關為0時也可能算出這個大小'
+                        if _se else ''))
     corr_table = f'<table><tr><th></th>{hdr}</tr>{"".join(corr_cells)}</table><div class="sm" style="margin-top:6px">{corr_note}</div>'
 
     # ---- 失效模式監控表 ----
@@ -533,7 +608,7 @@ function showEqChart(which){{
 <h2>⏳ 判決時鐘</h2>{clock_html}
 <h2>🩺 各腿生命徵象 <span class="sm">(機制監控, 比績效早發警訊)</span></h2>{legs_health}
 <h2>📡 資料源</h2>{feed_table}
-<h2>🔗 腿間相關性 (30天)</h2>{corr_table}
+<h2>🔗 腿間相關性 <span class="sm">(近{CORR_DAYS}天 · {n_pts}筆)</span></h2>{corr_table}
 <h2>☠️ 失效模式監控</h2>{fail_table}
 <h2>最近成交</h2>{trade_table}
 <div class="note">⚠️ <b>這是水管的數字, 不是策略的數字</b>: 測試網用market單(taker費+合成簿滑價),
