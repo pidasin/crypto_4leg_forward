@@ -203,7 +203,8 @@ a{{color:#60a5fa}}
 
 <div class="foot">
 四腿等權各25% · 誠實預期 Sharpe {C.HONEST["honest_sharpe"]} / MDD {C.HONEST["expected_mdd"]}%<br>
-判決時鐘: 6個月只看機制 · 12個月正式判決 · 起算 {C.START_DATE}
+判決時鐘(v2, 起算 {C.JUDGMENT_START}): 6個月只看機制 · 12/24個月只標記不處決 · 36個月逐腿正式判決<br>
+資料軌跡起算 {C.START_DATE} · 詳見 CHANGELOG.md
 </div>
 
 <script>

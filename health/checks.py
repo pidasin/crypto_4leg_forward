@@ -134,18 +134,49 @@ def layer3():
         alerts.append(_alert("INFO", f"已運行 {m:.1f} 個月 — 6個月檢查點",
             "只檢查『有沒有壞掉』(第一層), 不看賺賠。因為DVOL平時本來就在睡覺"))
 
-    # 檢查點2: 12個月 — 第一次正式判決
+    def _verdict(s, executable):
+        """executable=False → 只標記不處決 (12/24個月); True → 真正處決 (36個月)"""
+        if s > C.LAYER3["sharpe_survive"]:
+            return f"✅ 續命 (Sharpe {s:.2f} > {C.LAYER3['sharpe_survive']})"
+        if s < C.LAYER3["sharpe_kill"]:
+            return (f"☠️ 處決 (Sharpe {s:.2f} < {C.LAYER3['sharpe_kill']})" if executable
+                    else f"🔻 標記:低於處決線 (Sharpe {s:.2f} < {C.LAYER3['sharpe_kill']}) "
+                         f"— 但12/24個月【不處決】, 單腿Sharpe此時誤差±1.0, 誤殺率過高")
+        return f"⚠️ 灰色地帶 (Sharpe {s:.2f})"
+
+    # 檢查點2: 12個月 — ★只標記觀察, 不處決
     if m >= C.LAYER3["checkpoint_2_months"] and not R.empty:
         for leg in R.columns:
             s = sharpe(R[leg])
             if s is None: continue
-            if s > C.LAYER3["sharpe_survive"]:
-                v = f"✅ 續命 (Sharpe {s:.2f} > {C.LAYER3['sharpe_survive']})"
-            elif s < C.LAYER3["sharpe_kill"]:
-                v = f"☠️ 處決 (Sharpe {s:.2f} < {C.LAYER3['sharpe_kill']})"
+            alerts.append(_alert("JUDGMENT", f"[12個月·僅標記] {leg}腿: {_verdict(s, False)}",
+                "12個月不處決: 單腿波動32~53%, 1年資料Sharpe標準誤≈1.0, "
+                "四腿至少誤殺一條的機率53.3%。正式逐腿判決在36個月。"))
+
+    # 檢查點3: 24個月 — 逐腿仍只標記; 但【組合層】可判決(組合波動小, 誤差小得多)
+    if m >= C.LAYER3["checkpoint_3_months"] and not R.empty:
+        for leg in R.columns:
+            s = sharpe(R[leg])
+            if s is None: continue
+            alerts.append(_alert("JUDGMENT", f"[24個月·僅標記] {leg}腿: {_verdict(s, False)}"))
+        combo = R.mean(axis=1)
+        cs = sharpe(combo)
+        if cs is not None:
+            if cs < C.LAYER3["sharpe_kill"]:
+                v = f"☠️ 組合層處決 (Sharpe {cs:.2f} < {C.LAYER3['sharpe_kill']})"
+            elif cs > C.LAYER3["sharpe_survive"]:
+                v = f"✅ 組合續命 (Sharpe {cs:.2f})"
             else:
-                v = f"⚠️ 灰色地帶 (Sharpe {s:.2f}) → 延長觀察到{C.LAYER3['checkpoint_3_months']}個月"
-            alerts.append(_alert("JUDGMENT", f"[12個月判決] {leg}腿: {v}"))
+                v = f"⚠️ 組合灰色地帶 (Sharpe {cs:.2f})"
+            alerts.append(_alert("JUDGMENT", f"[24個月·組合判決] {v}",
+                "組合波動僅約23%(單腿32~53%), 誤差小得多, 故組合層此時可判決"))
+
+    # 檢查點4: 36個月 — ★逐腿正式判決 (誤殺率降到19.9%)
+    if m >= C.LAYER3["checkpoint_4_months"] and not R.empty:
+        for leg in R.columns:
+            s = sharpe(R[leg])
+            if s is None: continue
+            alerts.append(_alert("JUDGMENT", f"[36個月·正式判決] {leg}腿: {_verdict(s, True)}"))
 
     # 特別條款: DVOL在危機時沒賺錢 → 立即處決
     # (需要BTC週報酬資料, 由caller提供)

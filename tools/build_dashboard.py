@@ -322,16 +322,23 @@ def main():
     except Exception:
         sd = {}
 
-    # ---- 判決時鐘 ----
-    months = C.months_running()
-    prog = min(months / 18 * 100, 100)
+    # ---- 判決時鐘 (v2: 2026-09-05 重置, 詳見 CHANGELOG.md) ----
+    months = C.months_running()          # 判決時鐘
+    track_months = C.months_tracking()    # 資料軌跡(較長)
+    END = C.LAYER3["checkpoint_4_months"]
+    prog = min(months / END * 100, 100)
     clock_html = f"""
 <div class="clock"><div class="clockbar"><div class="clockfill" style="width:{prog:.1f}%"></div>
-<div class="ck" style="left:33.3%"><span>6月</span></div>
-<div class="ck" style="left:66.7%"><span>12月</span></div>
-<div class="ck" style="left:99.7%"><span>18月</span></div></div>
-<div class="sm" style="margin-top:14px">已運行 <b>{months:.2f}</b> 個月 ·
-6月=只看有沒有壞掉 · 12月=正式判決 (Sharpe&gt;{C.LAYER3["sharpe_survive"]}續命 / &lt;{C.LAYER3["sharpe_kill"]}處決) · 判準已寫死不可事後修改</div></div>"""
+<div class="ck" style="left:{6/END*100:.1f}%"><span>6月</span></div>
+<div class="ck" style="left:{12/END*100:.1f}%"><span>12月</span></div>
+<div class="ck" style="left:{24/END*100:.1f}%"><span>24月</span></div>
+<div class="ck" style="left:99.7%"><span>36月</span></div></div>
+<div class="sm" style="margin-top:14px">判決時鐘 <b>{months:.2f}</b> 個月 (起算 {C.JUDGMENT_START}) ·
+資料軌跡 {track_months:.2f} 個月 (起算 {C.START_DATE})<br>
+6月=只看有沒有壞掉 · <b>12/24月=只標記不處決</b> · 24月=組合層可判決 ·
+<b>36月=逐腿正式判決</b> (Sharpe&gt;{C.LAYER3["sharpe_survive"]}續命 / &lt;{C.LAYER3["sharpe_kill"]}處決)<br>
+<span style="color:#fbbf24">v2修訂(2026-09-05): 12個月逐腿判決誤殺率53.3%過高 → 績效判決延至36個月(19.9%)。
+機制死亡(資料源消失/部位凍結90天/對帳連7天失敗/DVOL危機沒賠付)維持即刻處決。</span></div></div>"""
 
     # ---- 各腿生命徵象卡 ----
     def leg_diag(leg): return (sd.get(leg) or {}).get("diag", {})
