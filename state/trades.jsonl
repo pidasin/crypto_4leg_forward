@@ -1738,3 +1738,6 @@
 {"ts": "2026-09-06T10:27:41.615507+00:00", "leg": "premium", "coin": "ETH", "side": "BUY", "delta": 0.008401, "old": 0.321489, "new": 0.32989, "price": 2498.3, "notional_usd": 21.0, "fee_maker_usd": 0.0042, "mode": "paper"}
 {"ts": "2026-09-06T10:27:41.615507+00:00", "leg": "premium", "coin": "BTC", "side": "SELL", "delta": -0.013376, "old": 0.332868, "new": 0.319492, "price": 79960.09, "notional_usd": 33.44, "fee_maker_usd": 0.0067, "mode": "paper"}
 {"ts": "2026-09-06T10:27:41.615666+00:00", "leg": "dvol", "coin": "BTC", "side": "SELL", "delta": -0.035718, "old": 0.189259, "new": 0.153541, "price": 79960.09, "notional_usd": 89.3, "fee_maker_usd": 0.0179, "mode": "paper"}
+{"ts": "2026-09-06T13:59:19.382140+00:00", "leg": "premium", "coin": "BTC", "side": "SELL", "delta": -0.012748, "old": 0.319492, "new": 0.306743, "price": 79782.29, "notional_usd": 31.87, "fee_maker_usd": 0.0064, "mode": "paper"}
+{"ts": "2026-09-06T13:59:19.382140+00:00", "leg": "premium", "coin": "ETH", "side": "SELL", "delta": -0.005911, "old": 0.32989, "new": 0.323979, "price": 2494.16, "notional_usd": 14.78, "fee_maker_usd": 0.003, "mode": "paper"}
+{"ts": "2026-09-06T13:59:19.382343+00:00", "leg": "dvol", "coin": "BTC", "side": "BUY", "delta": 0.009005, "old": 0.153541, "new": 0.162546, "price": 79782.29, "notional_usd": 22.51, "fee_maker_usd": 0.0045, "mode": "paper"}
