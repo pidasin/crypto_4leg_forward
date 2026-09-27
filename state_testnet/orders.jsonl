@@ -1217,3 +1217,4 @@
 {"ts": "2026-09-27T12:50:42.762294+00:00", "coin": "SOL", "side": "SELL", "qty": 0.13, "ref_px": 123.88, "target_frac": 0.067708, "http": 200, "orderId": 4212094877, "cid": "f4lsol513446016", "recovered": 0, "err": null}
 {"ts": "2026-09-27T17:34:27.810711+00:00", "coin": "BTC", "side": "BUY", "qty": 0.0009, "ref_px": 84423.9, "target_frac": -0.083388, "http": 200, "orderId": 28606113377, "cid": "f4lbtc530470025", "recovered": 0, "err": null}
 {"ts": "2026-09-27T17:34:27.810711+00:00", "coin": "SOL", "side": "BUY", "qty": 0.08, "ref_px": 121.86, "target_frac": 0.067708, "http": 200, "orderId": 4212214968, "cid": "f4lsol530470241", "recovered": 0, "err": null}
+{"ts": "2026-09-27T21:01:20.546744+00:00", "coin": "BTC", "side": "BUY", "qty": 0.001, "ref_px": 84530.3, "target_frac": -0.074864, "http": 200, "orderId": 28606281537, "cid": "f4lbtc542883256", "recovered": 0, "err": null}
