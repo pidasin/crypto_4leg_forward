@@ -32,40 +32,40 @@
  },
  "datafeed": {
   "binance_BTCUSDT_1h": {
-   "ts": "2026-10-05T01:41:47.444835+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_BTCUSDT_1h",
    "ok": true,
-   "latest": "2026-10-05 01:00:00",
-   "age_hours": 0.69,
+   "latest": "2026-10-05 05:00:00",
+   "age_hours": 0.53,
    "note": "",
    "daily": false
   },
   "coinbase_BTC-USD": {
-   "ts": "2026-10-05T01:41:47.444835+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "coinbase_BTC-USD",
    "ok": true,
-   "latest": "2026-10-05 01:00:00",
-   "age_hours": 0.69,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
-   "daily": false
+   "daily": true
   },
   "binance_ETHUSDT_1h": {
-   "ts": "2026-10-05T01:41:47.444835+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_ETHUSDT_1h",
    "ok": true,
-   "latest": "2026-10-05 01:00:00",
-   "age_hours": 0.69,
+   "latest": "2026-10-05 05:00:00",
+   "age_hours": 0.53,
    "note": "",
    "daily": false
   },
   "coinbase_ETH-USD": {
-   "ts": "2026-10-05T01:41:47.444835+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "coinbase_ETH-USD",
    "ok": true,
-   "latest": "2026-10-05 01:00:00",
-   "age_hours": 0.69,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
-   "daily": false
+   "daily": true
   },
   "deribit_dvol": {
    "ts": "2026-10-05T01:41:47.444835+00:00",
@@ -77,277 +77,277 @@
    "daily": false
   },
   "binance_ADAUSDT_1h": {
-   "ts": "2026-10-05T01:41:47.444835+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_ADAUSDT_1h",
    "ok": true,
-   "latest": "2026-10-05 01:00:00",
-   "age_hours": 0.69,
+   "latest": "2026-10-05 05:00:00",
+   "age_hours": 0.53,
    "note": "",
    "daily": false
   },
   "binance_DOGEUSDT_1h": {
-   "ts": "2026-10-05T01:41:47.444835+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_DOGEUSDT_1h",
    "ok": true,
-   "latest": "2026-10-05 01:00:00",
-   "age_hours": 0.69,
+   "latest": "2026-10-05 05:00:00",
+   "age_hours": 0.53,
    "note": "",
    "daily": false
   },
   "binance_LINKUSDT_1h": {
-   "ts": "2026-10-05T01:41:47.444835+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_LINKUSDT_1h",
    "ok": true,
-   "latest": "2026-10-05 01:00:00",
-   "age_hours": 0.69,
+   "latest": "2026-10-05 05:00:00",
+   "age_hours": 0.53,
    "note": "",
    "daily": false
   },
   "binance_LTCUSDT_1h": {
-   "ts": "2026-10-05T01:41:47.444835+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_LTCUSDT_1h",
    "ok": true,
-   "latest": "2026-10-05 01:00:00",
-   "age_hours": 0.69,
+   "latest": "2026-10-05 05:00:00",
+   "age_hours": 0.53,
    "note": "",
    "daily": false
   },
   "binance_SOLUSDT_1h": {
-   "ts": "2026-10-05T01:41:47.444835+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_SOLUSDT_1h",
    "ok": true,
-   "latest": "2026-10-05 01:00:00",
-   "age_hours": 0.7,
+   "latest": "2026-10-05 05:00:00",
+   "age_hours": 0.53,
    "note": "",
    "daily": false
   },
   "binance_XLMUSDT_1h": {
-   "ts": "2026-10-05T01:41:47.444835+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_XLMUSDT_1h",
    "ok": true,
-   "latest": "2026-10-05 01:00:00",
-   "age_hours": 0.7,
+   "latest": "2026-10-05 05:00:00",
+   "age_hours": 0.53,
    "note": "",
    "daily": false
   },
   "fng_alternative_me": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "fng_alternative_me",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "binance_BTCUSDT_1d": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_BTCUSDT_1d",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "binance_ETHUSDT_1d": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_ETHUSDT_1d",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "binance_SOLUSDT_1d": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_SOLUSDT_1d",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "coinbase_SOL-USD": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "coinbase_SOL-USD",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "binance_LTCUSDT_1d": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_LTCUSDT_1d",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "coinbase_LTC-USD": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "coinbase_LTC-USD",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "binance_LINKUSDT_1d": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_LINKUSDT_1d",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "coinbase_LINK-USD": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "coinbase_LINK-USD",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "binance_ADAUSDT_1d": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_ADAUSDT_1d",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "coinbase_ADA-USD": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "coinbase_ADA-USD",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "binance_DOGEUSDT_1d": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_DOGEUSDT_1d",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "coinbase_DOGE-USD": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "coinbase_DOGE-USD",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "binance_XLMUSDT_1d": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "binance_XLMUSDT_1d",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   },
   "coinbase_XLM-USD": {
-   "ts": "2026-10-04T05:46:34.528948+00:00",
+   "ts": "2026-10-05T05:32:08.201603+00:00",
    "source": "coinbase_XLM-USD",
    "ok": true,
-   "latest": "2026-10-04 00:00:00",
-   "age_hours": 5.77,
+   "latest": "2026-10-05 00:00:00",
+   "age_hours": 5.53,
    "note": "",
    "daily": true
   }
  },
  "aleg": {
-  "ts": "2026-10-04T05:46:34.528948+00:00",
+  "ts": "2026-10-05T05:32:08.201603+00:00",
   "ok": true,
   "diag": {
    "degraded": false,
    "BTC": {
-    "prem_ma": -3.64,
+    "prem_ma": -3.26,
     "cb_long": false,
-    "fng": 65,
+    "fng": 70,
     "greed": true,
     "pos": -0.0625
    },
    "ETH": {
-    "prem_ma": -3.55,
+    "prem_ma": -2.94,
     "cb_long": false,
-    "fng": 65,
+    "fng": 70,
     "greed": true,
     "pos": -0.0625
    },
    "SOL": {
-    "prem_ma": -3.36,
+    "prem_ma": -2.52,
     "cb_long": false,
-    "fng": 65,
+    "fng": 70,
     "greed": true,
     "pos": -0.0625
    },
    "LTC": {
-    "prem_ma": -2.87,
+    "prem_ma": -2.63,
     "cb_long": false,
-    "fng": 65,
+    "fng": 70,
     "greed": true,
     "pos": -0.0625
    },
    "LINK": {
-    "prem_ma": -4.2,
+    "prem_ma": -4.89,
     "cb_long": false,
-    "fng": 65,
+    "fng": 70,
     "greed": true,
     "pos": -0.0625
    },
    "ADA": {
-    "prem_ma": -1.32,
+    "prem_ma": -1.95,
     "cb_long": false,
-    "fng": 65,
+    "fng": 70,
     "greed": true,
     "pos": -0.0625
    },
    "DOGE": {
-    "prem_ma": -5.63,
+    "prem_ma": -5.9,
     "cb_long": false,
-    "fng": 65,
+    "fng": 70,
     "greed": true,
     "pos": -0.0625
    },
    "XLM": {
-    "prem_ma": -3.54,
+    "prem_ma": -3.97,
     "cb_long": false,
-    "fng": 65,
+    "fng": 70,
     "greed": true,
     "pos": -0.0625
    }
   }
  },
  "tleg": {
-  "ts": "2026-10-04T05:46:34.528948+00:00",
+  "ts": "2026-10-05T05:32:08.201603+00:00",
   "ok": true,
   "diag": {
    "BTC": {
-    "px": 84923.68,
-    "ma50": 79015.09,
+    "px": 85471.32,
+    "ma50": 79498.64,
     "above": true,
     "pos": 0.3333
    },
    "ETH": {
-    "px": 2696.32,
-    "ma50": 2500.94,
+    "px": 2695.1,
+    "ma50": 2517.93,
     "above": true,
     "pos": 0.3333
    },
    "SOL": {
-    "px": 120.96,
-    "ma50": 104.71,
+    "px": 120.05,
+    "ma50": 105.63,
     "above": true,
     "pos": 0.3333
    }
