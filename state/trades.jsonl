@@ -2339,3 +2339,4 @@
 {"ts": "2026-10-13T06:43:59.408081+00:00", "leg": "aleg", "coin": "BTC", "side": "SELL", "delta": -0.0625, "old": -0.0625, "new": -0.125, "price": 83748.01, "notional_usd": 156.25, "fee_maker_usd": 0.0312, "mode": "paper"}
 {"ts": "2026-10-13T06:43:59.408416+00:00", "leg": "tleg", "coin": "ETH", "side": "SELL", "delta": -0.333333, "old": 0.333333, "new": 0.0, "price": 2533.77, "notional_usd": 833.33, "fee_maker_usd": 0.1667, "mode": "paper"}
 {"ts": "2026-10-13T06:43:59.408416+00:00", "leg": "tleg", "coin": "SOL", "side": "SELL", "delta": -0.333333, "old": 0.333333, "new": 0.0, "price": 108.64, "notional_usd": 833.33, "fee_maker_usd": 0.1667, "mode": "paper"}
+{"ts": "2026-10-13T07:26:17.426943+00:00", "leg": "dvol", "coin": "BTC", "side": "SELL", "delta": -0.253471, "old": 0.53209, "new": 0.278619, "price": 83734.99, "notional_usd": 633.68, "fee_maker_usd": 0.1267, "mode": "paper"}
