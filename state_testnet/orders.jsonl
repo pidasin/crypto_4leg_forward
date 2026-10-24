@@ -1516,3 +1516,7 @@
 {"ts": "2026-10-24T00:20:25.861376+00:00", "coin": "LTC", "side": "SELL", "qty": 0.218, "ref_px": 57.01, "target_frac": -0.03125, "http": 200, "orderId": 1602027232, "cid": "f4lltc2801228042", "recovered": 0, "err": null}
 {"ts": "2026-10-24T05:28:35.674526+00:00", "coin": "BTC", "side": "SELL", "qty": 0.0013, "ref_px": 80755.0, "target_frac": -0.049317, "http": 200, "orderId": 28649163965, "cid": "f4lbtc2819718595", "recovered": 0, "err": null}
 {"ts": "2026-10-24T05:28:35.674526+00:00", "coin": "ETH", "side": "BUY", "qty": 0.017, "ref_px": 2375.29, "target_frac": -0.108751, "http": 200, "orderId": 16836886591, "cid": "f4leth2819718827", "recovered": 0, "err": null}
+{"ts": "2026-10-24T10:27:42.901167+00:00", "coin": "ADA", "side": "SELL", "qty": 51.0, "ref_px": 0.2077, "target_frac": -0.03125, "http": 200, "orderId": 1329802408, "cid": "f4lada2837665531", "recovered": 0, "err": null}
+{"ts": "2026-10-24T10:27:42.901167+00:00", "coin": "BTC", "side": "BUY", "qty": 0.0009, "ref_px": 80515.9, "target_frac": -0.041407, "http": 200, "orderId": 28649738634, "cid": "f4lbtc2837665722", "recovered": 0, "err": null}
+{"ts": "2026-10-24T10:27:42.901167+00:00", "coin": "LINK", "side": "SELL", "qty": 1.26, "ref_px": 11.576, "target_frac": -0.03125, "http": 200, "orderId": 1062803929, "cid": "f4llin2837665912", "recovered": 0, "err": null}
+{"ts": "2026-10-24T10:27:42.901167+00:00", "coin": "XLM", "side": "SELL", "qty": 83.0, "ref_px": 0.16961, "target_frac": -0.03125, "http": 200, "orderId": 734903251, "cid": "f4lxlm2837666096", "recovered": 0, "err": null}
