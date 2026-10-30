@@ -1581,3 +1581,8 @@
 {"ts": "2026-10-30T01:38:45.219618+00:00", "coin": "LTC", "side": "SELL", "qty": 0.3, "ref_px": 54.34, "target_frac": -0.03125, "http": 200, "orderId": 1604776985, "cid": "f4lltc3324328846", "recovered": 0, "err": null}
 {"ts": "2026-10-30T01:38:45.219618+00:00", "coin": "SOL", "side": "SELL", "qty": 0.18, "ref_px": 94.25, "target_frac": -0.03125, "http": 200, "orderId": 4237381609, "cid": "f4lsol3324329119", "recovered": 0, "err": null}
 {"ts": "2026-10-30T01:38:45.219618+00:00", "coin": "XLM", "side": "SELL", "qty": 88.0, "ref_px": 0.16189, "target_frac": -0.03125, "http": 200, "orderId": 737142463, "cid": "f4lxlm3324329349", "recovered": 0, "err": null}
+{"ts": "2026-10-30T05:40:23.458336+00:00", "coin": "ADA", "side": "BUY", "qty": 55.0, "ref_px": 0.1943, "target_frac": -0.03125, "http": 200, "orderId": 1332537260, "cid": "f4lada3338825993", "recovered": 0, "err": null}
+{"ts": "2026-10-30T05:40:23.458336+00:00", "coin": "LINK", "side": "BUY", "qty": 1.45, "ref_px": 11.11, "target_frac": -0.03125, "http": 200, "orderId": 1065508101, "cid": "f4llin3338826276", "recovered": 0, "err": null}
+{"ts": "2026-10-30T05:40:23.458336+00:00", "coin": "LTC", "side": "BUY", "qty": 0.203, "ref_px": 56.34, "target_frac": -0.03125, "http": 200, "orderId": 1604834339, "cid": "f4lltc3338826527", "recovered": 0, "err": null}
+{"ts": "2026-10-30T05:40:23.458336+00:00", "coin": "SOL", "side": "BUY", "qty": 0.12, "ref_px": 98.14, "target_frac": -0.03125, "http": 200, "orderId": 4237490686, "cid": "f4lsol3338826856", "recovered": 0, "err": null}
+{"ts": "2026-10-30T05:40:23.458336+00:00", "coin": "XLM", "side": "BUY", "qty": 64.0, "ref_px": 0.16748, "target_frac": -0.03125, "http": 200, "orderId": 737198959, "cid": "f4lxlm3338827158", "recovered": 0, "err": null}
