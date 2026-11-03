@@ -284,6 +284,47 @@ def study(S):
         print(f"\n  {c}: " + "  ".join(f"{k.year}={v['mean']:.1f}" for k, v in y.iterrows()))
         print(f"      目前 {s.iloc[-1]:.2f}bp · 近90天 min {s.tail(2160).min():.2f} / "
               f"max {s.tail(2160).max():.2f} · 全期 ≤{floor}bp 佔 {(s<=floor).mean()*100:.1f}%")
+
+    print("\n" + "=" * 100)
+    print(f"【H6】★反事實: 若這條規則真的接成「連續30天 min(std) ≤ {floor}bp → 處決」, 歷史上何時會殺掉溢價腿?")
+    print("=" * 100)
+    idx = S["BTC"].index.intersection(S["ETH"].index)
+    smin = pd.concat([S[c].loc[idx, "std"] for c in COINS], axis=1).min(axis=1)
+    smin = smin.loc[CUT:].dropna()
+    daily = smin.resample("D").median().dropna()      # 與 book.premium_std_floor_days 同口徑
+    below = (daily <= floor).astype(int)
+    # 找出所有連續 ≥30 天的區段
+    runs, start = [], None
+    for ts, v in below.items():
+        if v and start is None:
+            start = ts
+        elif not v and start is not None:
+            if (ts - start).days >= 30:
+                runs.append((start, ts))
+            start = None
+    if start is not None and (daily.index[-1] - start).days >= 30:
+        runs.append((start, daily.index[-1]))
+    if not runs:
+        print("  從未連續30天在地板下 → 這條規則歷史上不會觸發")
+    else:
+        print(f"  ⚠️ 共 {len(runs)} 次會觸發處決。第一次就會殺掉溢價腿, 之後的報酬全部拿不到:")
+        first = runs[0][0]
+        for a, b in runs[:8]:
+            print(f"     {a.date()} → {b.date()}  ({(b-a).days} 天)")
+        if len(runs) > 8:
+            print(f"     ... 另有 {len(runs)-8} 段")
+        # 被砍之後, 這條腿實際上還賺了多少?
+        pos = sum(S[c].loc[idx, "pos"] for c in COINS)
+        ret = sum(S[c].loc[idx, "pos"] * S[c].loc[idx, "px"].pct_change().shift(-1) for c in COINS)
+        turn = sum(S[c].loc[idx, "pos"].diff().abs().fillna(0) for c in COINS)
+        net = (ret - turn * 2 / 1e4).fillna(0)
+        kill_ts = pd.Timestamp(first) + pd.Timedelta(days=30)
+        after = net[net.index >= kill_ts]
+        s_a, r_a, nd_a = daily_sharpe(after)
+        print(f"\n  第一次處決日 ≈ {kill_ts.date()} (連續30天達標的那天)")
+        print(f"  處決後到今天: {nd_a} 天, 淨Sharpe@2bp {s_a:+.2f}, 年報酬 {r_a*100:+.1f}%, "
+              f"累積 {((1+after).prod()-1)*100:+.1f}%")
+        print(f"  → 若照 config 原文處決, 這些全部拿不到。")
     return rows
 
 
