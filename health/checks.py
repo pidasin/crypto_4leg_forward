@@ -178,8 +178,92 @@ def layer3():
             if s is None: continue
             alerts.append(_alert("JUDGMENT", f"[36個月·正式判決] {leg}腿: {_verdict(s, True)}"))
 
-    # 特別條款: DVOL在危機時沒賺錢 → 立即處決
-    # (需要BTC週報酬資料, 由caller提供)
+    # ★特別條款(DVOL危機)與其他機制死亡判定已獨立成 mechanism(), 由每個 cycle 呼叫 ——
+    #   不能放在這裡: layer3 只在 `run.py judge` 手動執行時跑, 而機制死亡的全部價值在於【即時】。
+    return alerts
+
+# ==================== ☠️ 機制死亡 (每個cycle都跑, 不等判決時鐘) ====================
+def mechanism(legs_result=None):
+    """★2026-11-03 接線。此前 config.LAYER3 的 mech_* 參數與 dvol_crisis_check()
+       自 v2(2026-09-05) 寫入後【從未被任何程式碼讀取】—— 規則存在於紙上但不會執行。
+
+       為什麼必須每個cycle跑(而非放在 layer3):
+         機制死亡的全部價值是「看得到就是死了, 立刻處決」。若只在手動 judge 時檢查,
+         等於要人記得去按 —— 而這條規則存在的理由正是「不要依賴當下的你」。
+
+       分級原則(依使用者原則「寧願多虧錢也不要誤判」):
+         ☠️ 可處決  = 事實型單一事件, 誤判率確實趨近零 (DVOL危機條款、對帳連續失敗)
+         ⚖️ 需人工裁決 = 本次接線時發現【寫死的規則本身會誤判】的兩條 (見各自註解)
+       絕不自動處決任何一條我無法證明誤判率極低的規則。
+    """
+    alerts = []
+    P = C.LAYER3
+
+    # ---- 1. DVOL 特別條款: BTC 7日跌 >15% 而 DVOL 腿沒賺錢 → 處決 ----
+    #    事實型判定: 保單在理賠日有沒有賠付。無灰色地帶, 故維持可處決。
+    #    掃全史: 這條從未執行過, 必須能回答「過去有沒有漏掉的觸發」。
+    #    ★判定本身一律走 dvol_crisis_check() —— 不在這裡重寫一份。
+    #      否則那個函式又會變成「定義了但沒人呼叫」的死程式碼, 正是本次要修掉的病。
+    for ev in book.crisis_windows(P["dvol_crisis_btc_drop"]):
+        if ev["dvol_ret"] is None:
+            continue
+        a = dvol_crisis_check(ev["btc_ret"], ev["dvol_ret"])
+        if a is None:
+            continue
+        a = dict(a, msg=f"{a['msg']} [事件日 {ev['end']}]")
+        if book.save_mech_verdict(f"dvol_crisis_{ev['end']}", dict(rule="dvol_crisis", **ev)):
+            alerts.append(a)                        # ★只在第一次偵測到時發 → 不每小時轟炸
+
+    # ---- 2. 對帳連續失敗 → 執行層壞了 ----
+    #    事實型判定。注意: 這殺的是「執行層」不是某條腿的策略, 動作是修水管。
+    rf, last_day = book.recon_fail_days()
+    if rf is not None and rf >= P["mech_recon_fail_days"]:
+        if book.save_mech_verdict(f"recon_fail_{last_day}", dict(rule="recon_fail", days=rf)):
+            alerts.append(_alert("CRITICAL", f"☠️ 測試網對帳連續 {rf} 天無法通過 (上限{P['mech_recon_fail_days']}天)",
+                "執行層壞了。這不是策略問題 —— paper track 不受影響, 但真錢上線前必須修好水管"))
+
+    # ---- 3. 部位凍結 → ⚖️ 需人工裁決 (不自動處決) ----
+    #    ★接線時發現寫死的規則會誤判, 故降級為裁決:
+    #      T腿是 long-only SMA50, 空頭市場中「三幣全部跌破均線→空手」會讓部位合法地長期不動;
+    #      A腿是四象限模型, 象限不變時部位也合法地釘在 ±1。
+    #      對這兩條腿, 90天不動可能是【設計如此】而非 z分數失去區辨力。
+    #    誤殺一條好腿 = 永久損失(型I), 故此處只標記、要求人工看一眼。
+    DESIGN_FLAT = {"tleg": "long-only SMA50: 空頭中空手是設計行為",
+                   "aleg": "四象限模型: 象限不變時部位合法釘住"}
+    for leg in C.LEG_WEIGHTS:
+        d, ts, ever = book.frozen_days(leg)
+        if d is None or d < P["mech_frozen_days"]:
+            continue
+        note = DESIGN_FLAT.get(leg)
+        lvl = "JUDGMENT" if note else "CRITICAL"
+        act = (f"⚖️ 需人工裁決 — {note}。請確認是『訊號仍在動但剛好指向同一邊』(正常) "
+               f"還是『訊號源停更/z分數失去區辨力』(機制死亡)" if note else
+               "z分數失去區辨力 = 機制死亡。依 CHANGELOG v2 可立即處決")
+        span = "全期從未變動過" if not ever else f"連續 {d:.0f} 天未變動"
+        if book.save_mech_verdict(f"frozen_{leg}_{str(ts)[:10]}",
+                                  dict(rule="frozen", leg=leg, days=round(d,1), ever_changed=ever)):
+            alerts.append(_alert(lvl, f"{'⚖️' if note else '☠️'} {leg}腿部位{span} "
+                                      f"({d:.0f}天, 上限{P['mech_frozen_days']}天)", act))
+
+    # ---- 4. 溢價 std 地板 → ⚖️ 需人工裁決 (不自動處決) ----
+    #    ★接線時發現【規則與實測證據互相矛盾】, 絕不可自動處決:
+    #      config/CHANGELOG: std ≤4bp = 物理極限(≈2×成本) → 處決
+    #      但 LAYER2 註解與記憶實測: 「std變小不是問題, <4bp區間 Sharpe 1.56」, 危險的是變大
+    #    兩者不可能同時為真。在用資料解決這個矛盾之前, 這條只標記。
+    run, cur, n = book.premium_std_floor_days(P["mech_premium_std_floor"])
+    if cur is not None:
+        if run is None:
+            alerts.append(_alert("INFO", f"溢價std 地板監控啟動中 (目前最低幣 {cur:.2f}bp, "
+                                         f"地板{P['mech_premium_std_floor']}bp, 已累積{n}天歷史)",
+                "需≥2天日中位數才能判定『持續』。歷史在今天之前沒有被記錄過, 故從今天開始累積"))
+        elif run >= 30:
+            if book.save_mech_verdict(f"prem_std_floor_{run}d", dict(rule="prem_std_floor", days=run, cur=cur)):
+                alerts.append(_alert("JUDGMENT",
+                    f"⚖️ 溢價std 連續 {run} 天 ≤ {P['mech_premium_std_floor']}bp (目前 {cur:.2f}bp)",
+                    "⚠️ 本條規則與實測證據衝突, 故【不自動處決】: config說這是物理極限該處決, "
+                    "但 LAYER2 註解與回測記憶說『<4bp區間 Sharpe 1.56, std變小是健康』。"
+                    "必須先用資料裁決哪個對, 再決定要不要動這條腿。"))
+
     return alerts
 
 def dvol_crisis_check(btc_weekly_return, dvol_weekly_return):

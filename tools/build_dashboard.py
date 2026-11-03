@@ -349,6 +349,12 @@ def main():
     pd_ = leg_diag("premium")
     prem_stds = [v.get("prem_std") for v in pd_.values() if isinstance(v, dict) and v.get("prem_std") is not None]
     prem_std = max(prem_stds) if prem_stds else None
+    # ★2026-11-03: 只顯示 max 會把快碰到地板的那個幣藏起來。
+    #   兩條規則方向相反 —— LAYER2 警戒【高】std(混亂期, 看max才對),
+    #   LAYER3 機制地板警戒【低】std(物理極限, 必須看min)。所以兩個都要顯示。
+    prem_std_min = min(prem_stds) if prem_stds else None
+    prem_std_rng = (f"{prem_std_min:.2f}~{prem_std:.2f}bp" if prem_stds and prem_std_min != prem_std
+                    else (f"{prem_std}bp" if prem_std is not None else "—"))
     prem_zs = {k: v.get("z") for k, v in pd_.items() if isinstance(v, dict) and v.get("z") is not None}
     dd_ = leg_diag("dvol")
     ad_ = leg_diag("aleg")
@@ -395,7 +401,7 @@ def main():
     legs_health = f"""
 <div class="hgrid">
 <div class="hcard"><div class="ht">🟦 溢價腿 <span class="sm">擇時·非套利</span></div>
-{vital("溢價std", f"{prem_std}bp" if prem_std is not None else "—", (prem_std or 0) <= C.LAYER2["premium_std_high"], f"警戒>{C.LAYER2['premium_std_high']}bp·變小=健康")}
+{vital("溢價std", prem_std_rng, (prem_std or 0) <= C.LAYER2["premium_std_high"], f"高>{C.LAYER2['premium_std_high']}bp=混亂期危險 · 低≤{C.LAYER3['mech_premium_std_floor']}bp=機制地板(規則有矛盾, 見下)")}
 {"".join(vital(f"z {k}", f"{v:+.2f}", abs(v or 0) < 1.9, "貼±2=釘住" if abs(v or 0) >= 1.9 else "") for k, v in prem_zs.items())}
 {frozen_vital("premium")}</div>
 <div class="hcard"><div class="ht">🟨 DVOL腿 <span class="sm">恐慌=買</span></div>
@@ -513,6 +519,56 @@ def main():
     ]
     fail_table = f'<table><tr><th>失效模式</th><th>狀態</th><th>偵測/應對</th></tr>{"".join(fail_rows)}</table>'
 
+    # ---- ☠️ 機制死亡警戒線 (2026-11-03 新增) ----
+    # ★為什麼要有這張表: 這些規則自 v2(2026-09-05) 寫進 config 後, 到 2026-11-03 才發現
+    #   【從未被任何程式碼讀取】—— 參數是裝飾品, dvol_crisis_check() 定義了但沒人呼叫。
+    #   同 silent-judgment-killing-bugs 家族: 不噴錯, 但該響的時候不會響。
+    #   這張表的唯一目的是讓「偵測器有沒有電」變成看得見的事, 使同樣的bug無法再靜默發生。
+    try:
+        import book as _bk
+        _ms = []
+        def mrow(name, val, armed, thr, note, bad=False):
+            lamp = "🔴" if bad else ("✅" if armed else "⚪")
+            return (f'<tr><td><b>{name}</b></td><td class="{"neg" if bad else ""}">{lamp} {val}</td>'
+                    f'<td class="sm">{thr}</td><td class="sm">{note}</td></tr>')
+        # 1 DVOL 危機條款
+        _ev = _bk.crisis_windows(C.LAYER3["dvol_crisis_btc_drop"])
+        _failed = [e for e in _ev if not e["passed"]]
+        _ms.append(mrow("DVOL 危機條款", f"{len(_ev)} 次觸發 / {len(_failed)} 次沒賠付",
+                        True, f"BTC 7日 ≤ {C.LAYER3['dvol_crisis_btc_drop']*100:.0f}%",
+                        "保單在理賠日有沒有賠付 · 可即刻處決", bad=bool(_failed)))
+        # 2 部位凍結
+        for _lg, _nm in [("premium","溢價"),("dvol","DVOL"),("aleg","A腿"),("tleg","T腿")]:
+            _d, _ts, _ever = _bk.frozen_days(_lg)
+            if _d is None: continue
+            _bad = _d >= C.LAYER3["mech_frozen_days"]
+            _dsg = _lg in ("tleg","aleg")
+            _ms.append(mrow(f"{_nm} 部位凍結", f"{_d:.0f} 天" + ("" if _ever else " (全期未動)"),
+                            True, f"≥ {C.LAYER3['mech_frozen_days']} 天",
+                            ("空手/釘住可能是設計行為 → 只標記不處決" if _dsg else "z分數失去區辨力 → 可處決"),
+                            bad=_bad))
+        # 3 對帳連續失敗
+        _rf, _rd = _bk.recon_fail_days()
+        _ms.append(mrow("對帳連續失敗", (f"{_rf} 天" if _rf is not None else "無記錄"),
+                        _rf is not None, f"≥ {C.LAYER3['mech_recon_fail_days']} 天",
+                        "執行層壞了(不影響paper, 真錢前必修)",
+                        bad=bool(_rf is not None and _rf >= C.LAYER3["mech_recon_fail_days"])))
+        # 4 溢價 std 地板
+        _run, _cur, _n = _bk.premium_std_floor_days(C.LAYER3["mech_premium_std_floor"])
+        _ms.append(mrow("溢價 std 地板",
+                        (f"最低幣 {_cur:.2f}bp · 連續 {_run if _run is not None else '累積中'} 天"
+                         if _cur is not None else f"累積中 ({_n}天)"),
+                        _cur is not None, f"≤ {C.LAYER3['mech_premium_std_floor']}bp 持續30天",
+                        "⚠️ 與實測衝突(&lt;4bp區Sh1.56) → 只標記, 需人工裁決",
+                        bad=bool(_run is not None and _run >= 30)))
+        mech_table = (f'<table><tr><th>警戒線</th><th>現況</th><th>門檻</th><th>說明</th></tr>'
+                      f'{"".join(_ms)}</table>'
+                      f'<div class="sm" style="margin-top:6px">✅=偵測器已接線並有資料 · '
+                      f'⚪=尚無資料 · 🔴=已越線。機制死亡不受36個月延長保護, 但本表中標為'
+                      f'「只標記」的兩條在本次接線時發現【寫死的規則本身會誤判】, 故不自動處決。</div>')
+    except Exception as _e:
+        mech_table = f'<div class="empty">機制警戒線表產生失敗: {type(_e).__name__}: {_e}</div>'
+
     # ---------- 最近成交 ----------
     trows = []
     for o in list(reversed(ok_orders))[:15]:
@@ -617,6 +673,7 @@ function showEqChart(which){{
 <h2>📡 資料源</h2>{feed_table}
 <h2>🔗 腿間相關性 <span class="sm">(近{CORR_DAYS}天 · {n_pts}筆)</span></h2>{corr_table}
 <h2>☠️ 失效模式監控</h2>{fail_table}
+<h2>🚨 機制死亡警戒線 <span class="sm">(2026-11-03 接線 · 此前規則存在但不會執行)</span></h2>{mech_table}
 <h2>最近成交</h2>{trade_table}
 <div class="note">⚠️ <b>這是水管的數字, 不是策略的數字</b>: 測試網用market單(taker費+合成簿滑價),
 損益會系統性差於paper帳面。評估策略看paper; 這頁看的是「下單/對帳有沒有正常運作」和大致盈虧。<br>

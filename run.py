@@ -103,21 +103,44 @@ def run_cycle(which):
     book.save_diag(res, dh)          # ★持久化診斷 → 儀表板腿健康度
     a1 = checks.layer1(dh, res)
     book.record_health([dict(a) for a in a1], "layer1")
-    _report(a1, res, which)
-    return res, a1
+
+    # ☠️ 機制死亡 — ★每個cycle都檢查
+    #   2026-11-03 接線: 在此之前 config.LAYER3 的 mech_* 與 dvol_crisis_check() 從未被呼叫。
+    #   不能等 `run.py judge` 手動執行 —— 機制死亡的全部價值就是不依賴「有人記得去按」。
+    book.record_mech_vitals(res)     # 先記錄生命徵象 (供「持續N天」類判定)
+    try:
+        am = checks.mechanism(res)
+    except Exception as e:
+        am = [dict(level="WARN", msg=f"機制死亡檢查本身出錯: {type(e).__name__}: {e}",
+                   action="這層壞了等於警報器沒電, 要修")]
+    if am:
+        book.record_health([dict(a) for a in am], "mechanism")
+
+    _report(a1 + am, res, which)
+    return res, a1 + am
 
 def _report(alerts, res=None, which=""):
+    """★JUDGMENT 必須獨立處理, 不能跟著 CRITICAL/WARN 搭便車
+
+    bug(2026-11-03修正): 原版只收集 CRITICAL/WARN, 且只在「有crit或warn」時才呼叫
+    send_alerts —— 若某次只產生 JUDGMENT (機制死亡正是這種), 它既不印也不發,
+    等於判決成立了但沒人知道。同 silent-judgment-killing-bugs 家族。
+    """
+    judg = [a for a in alerts if a["level"]=="JUDGMENT"]
     crit = [a for a in alerts if a["level"]=="CRITICAL"]
     warn = [a for a in alerts if a["level"]=="WARN"]
+    if judg:
+        print(f"\n⚖️ {len(judg)} 個 JUDGMENT (機制層判定):")
+        for a in judg: print(f"   • {a['msg']}\n     → {a.get('action','')}")
     if crit:
         print(f"\n🔴 {len(crit)} 個 CRITICAL:")
         for a in crit: print(f"   • {a['msg']}\n     → {a['action']}")
     if warn:
         print(f"\n🟡 {len(warn)} 個 WARN:")
         for a in warn: print(f"   • {a['msg']}")
-    if not crit and not warn:
-        print("\n✅ 第一層全數通過")
-    if crit or warn:
+    if not (judg or crit or warn):
+        print("\n✅ 第一層 + 機制層全數通過")
+    if judg or crit or warn:
         notify.send_alerts(alerts, which)
 
 def daily_summary():
