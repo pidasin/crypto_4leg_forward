@@ -401,7 +401,7 @@ def main():
     legs_health = f"""
 <div class="hgrid">
 <div class="hcard"><div class="ht">🟦 溢價腿 <span class="sm">擇時·非套利</span></div>
-{vital("溢價std", prem_std_rng, (prem_std or 0) <= C.LAYER2["premium_std_high"], f"高>{C.LAYER2['premium_std_high']}bp=混亂期危險 · 低≤{C.LAYER3['mech_premium_std_floor']}bp=機制地板(規則有矛盾, 見下)")}
+{vital("溢價std", prem_std_rng, (prem_std or 0) <= C.LAYER2["premium_std_high"], f"警戒>{C.LAYER2['premium_std_high']}bp=混亂期(實測12-20bp區組合Sh -0.20) · 低std反而較好, 地板規則已於2026-11-03實證推翻")}
 {"".join(vital(f"z {k}", f"{v:+.2f}", abs(v or 0) < 1.9, "貼±2=釘住" if abs(v or 0) >= 1.9 else "") for k, v in prem_zs.items())}
 {frozen_vital("premium")}</div>
 <div class="hcard"><div class="ht">🟨 DVOL腿 <span class="sm">恐慌=買</span></div>
@@ -511,7 +511,7 @@ def main():
     fail_rows = [
         fm("④ 贏家詛咒", "已確定·已定價", "40+家族挑4條 → 預期打折至Sh1.45, 別看回測2.10"),
         fm("⑤ 資料源消失", "✅ 全部在線" if (fng_ok and not dd_.get("degraded")) else "⚠️ 有降級", "上表資料源狀態 · FNG掛→純CB / DVOL掛→選擇權鏈自算", "" if (fng_ok and not dd_.get("degraded")) else "neg"),
-        fm("⑥ 溢價訊號", f"std {prem_std}bp" if prem_std is not None else "—", f"警戒>{C.LAYER2['premium_std_high']}bp (高std=混亂期才危險; 變小=健康, 實測<4bp區Sh1.56)", "" if (prem_std or 0) <= C.LAYER2["premium_std_high"] else "neg"),
+        fm("⑥ 溢價訊號", f"std {prem_std}bp" if prem_std is not None else "—", f"警戒>{C.LAYER2['premium_std_high']}bp (實測12-20bp區組合Sh -0.20=真死亡區; 低std反而較好, ≤4bp區Sh +1.5)", "" if (prem_std or 0) <= C.LAYER2["premium_std_high"] else "neg"),
         fm("⑦ T腿衰減", "觀察中", "ETF後1.78→0.58 · forward<0.3持續→12月砍"),
         fm("⑧ 腿間相關飆升", f"max {max_corr:.2f}" if n_pts >= 72 else "累積中", f"任一對>{C.LAYER2['leg_corr_max']}=變成同一個賭注", "" if max_corr <= C.LAYER2["leg_corr_max"] else "neg"),
         fm("⑨ 交易所倒閉", "只能防範", "FTX前例·真錢階段: 定期提領獲利, 不押身家"),
@@ -554,18 +554,26 @@ def main():
                         "執行層壞了(不影響paper, 真錢前必修)",
                         bad=bool(_rf is not None and _rf >= C.LAYER3["mech_recon_fail_days"])))
         # 4 溢價 std 地板
-        _run, _cur, _n = _bk.premium_std_floor_days(C.LAYER3["mech_premium_std_floor"])
-        _ms.append(mrow("溢價 std 地板",
-                        (f"最低幣 {_cur:.2f}bp · 連續 {_run if _run is not None else '累積中'} 天"
-                         if _cur is not None else f"累積中 ({_n}天)"),
-                        _cur is not None, f"≤ {C.LAYER3['mech_premium_std_floor']}bp 持續30天",
-                        "⚠️ 與實測衝突(&lt;4bp區Sh1.56) → 只標記, 需人工裁決",
-                        bad=bool(_run is not None and _run >= 30)))
+        _floor = C.LAYER3.get("mech_premium_std_floor")
+        if _floor is None:
+            _ms.append(mrow("溢價 std 地板", "已停用", False, "—",
+                            "2026-11-03 實證推翻: 地板下反而是較好的一半(淨Sh +1.5 vs +0.9), "
+                            "真死亡區是高std 12-20bp。反事實: 原規則會在2021-07-27殺掉溢價腿, "
+                            "而它之後又跑出+1027%"))
+        else:
+            _run, _cur, _n = _bk.premium_std_floor_days(_floor)
+            _ms.append(mrow("溢價 std 地板",
+                            (f"最低幣 {_cur:.2f}bp · 連續 {_run if _run is not None else '累積中'} 天"
+                             if _cur is not None else f"累積中 ({_n}天)"),
+                            _cur is not None, f"≤ {_floor}bp 持續30天",
+                            "⚠️ 此條曾被實證推翻並停用, 若重新啟用先讀 CHANGELOG v2.2",
+                            bad=bool(_run is not None and _run >= 30)))
         mech_table = (f'<table><tr><th>警戒線</th><th>現況</th><th>門檻</th><th>說明</th></tr>'
                       f'{"".join(_ms)}</table>'
                       f'<div class="sm" style="margin-top:6px">✅=偵測器已接線並有資料 · '
-                      f'⚪=尚無資料 · 🔴=已越線。機制死亡不受36個月延長保護, 但本表中標為'
-                      f'「只標記」的兩條在本次接線時發現【寫死的規則本身會誤判】, 故不自動處決。</div>')
+                      f'⚪=尚無資料或已停用 · 🔴=已越線。機制死亡不受36個月延長保護, 但標為'
+                      f'「只標記」的兩條在接線時發現【寫死的規則本身會誤判】故不自動處決; '
+                      f'std地板那條已被實證推翻並停用。</div>')
     except Exception as _e:
         mech_table = f'<div class="empty">機制警戒線表產生失敗: {type(_e).__name__}: {_e}</div>'
 

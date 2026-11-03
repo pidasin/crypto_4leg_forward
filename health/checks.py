@@ -245,24 +245,19 @@ def mechanism(legs_result=None):
             alerts.append(_alert(lvl, f"{'⚖️' if note else '☠️'} {leg}腿部位{span} "
                                       f"({d:.0f}天, 上限{P['mech_frozen_days']}天)", act))
 
-    # ---- 4. 溢價 std 地板 → ⚖️ 需人工裁決 (不自動處決) ----
-    #    ★接線時發現【規則與實測證據互相矛盾】, 絕不可自動處決:
-    #      config/CHANGELOG: std ≤4bp = 物理極限(≈2×成本) → 處決
-    #      但 LAYER2 註解與記憶實測: 「std變小不是問題, <4bp區間 Sharpe 1.56」, 危險的是變大
-    #    兩者不可能同時為真。在用資料解決這個矛盾之前, 這條只標記。
-    run, cur, n = book.premium_std_floor_days(P["mech_premium_std_floor"])
-    if cur is not None:
-        if run is None:
-            alerts.append(_alert("INFO", f"溢價std 地板監控啟動中 (目前最低幣 {cur:.2f}bp, "
-                                         f"地板{P['mech_premium_std_floor']}bp, 已累積{n}天歷史)",
-                "需≥2天日中位數才能判定『持續』。歷史在今天之前沒有被記錄過, 故從今天開始累積"))
-        elif run >= 30:
+    # ---- 4. 溢價 std 地板 → ★2026-11-03 已實證推翻, 永久停用 ----
+    #    詳細證據見 config.LAYER3 該參數上方註解與 CHANGELOG v2.2。
+    #    一句話: 地板下反而是較好的一半(淨Sharpe +1.5 vs +0.9), 真正的死亡區是【高】std 12-20bp,
+    #    而高 std 已由 LAYER2 的 WARN 覆蓋。反事實顯示原規則會在 2021-07-27 殺掉溢價腿,
+    #    而它之後又跑出 +1027% —— 這就是型I誤殺的代價。
+    #    保留 book.premium_std_floor_days() 與 mech_vitals 記錄: 生命徵象仍值得看, 只是不據此處決。
+    if P.get("mech_premium_std_floor") is not None:
+        run, cur, n = book.premium_std_floor_days(P["mech_premium_std_floor"])
+        if cur is not None and run is not None and run >= 30:
             if book.save_mech_verdict(f"prem_std_floor_{run}d", dict(rule="prem_std_floor", days=run, cur=cur)):
                 alerts.append(_alert("JUDGMENT",
                     f"⚖️ 溢價std 連續 {run} 天 ≤ {P['mech_premium_std_floor']}bp (目前 {cur:.2f}bp)",
-                    "⚠️ 本條規則與實測證據衝突, 故【不自動處決】: config說這是物理極限該處決, "
-                    "但 LAYER2 註解與回測記憶說『<4bp區間 Sharpe 1.56, std變小是健康』。"
-                    "必須先用資料裁決哪個對, 再決定要不要動這條腿。"))
+                    "此條曾於 2026-11-03 被實證推翻並停用; 若它又被啟用, 先讀 CHANGELOG v2.2"))
 
     return alerts
 
