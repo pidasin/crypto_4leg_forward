@@ -6,7 +6,7 @@
   📅 每日摘要   → 一天一次 (總資產 + 各腿損益 + 部位 + 狀況), WARN彙整在這裡
   🔴 CRITICAL  → 立即發, 但【去重】: 同一問題4小時內只發一次
                  (Deribit掛3天 = 收到約18條而不是72條)
-  ⚖️ JUDGMENT  → 立即發 (6/12/18個月才有, 不可能吵)
+  ⚖️ JUDGMENT  → 立即發 (檢查點或機制死亡才有, 不可能吵)
   🟡 WARN      → 不即時發, 只進每日摘要
   🔵 INFO      → 只記錄, 不發
 """
@@ -154,7 +154,9 @@ def send_daily_summary(positions, alerts_today, perf=None, dd=None, extra=None):
 
     # 檢查點倒數 (剩1個月內才提醒)
     for name, mo in [("6個月檢查點(只看有沒有壞掉)", C.LAYER3["checkpoint_1_months"]),
-                     ("12個月正式判決", C.LAYER3["checkpoint_2_months"])]:
+                     ("12個月檢查點(逐腿只標記)", C.LAYER3["checkpoint_2_months"]),
+                     ("24個月檢查點(組合層可判決)", C.LAYER3["checkpoint_3_months"]),
+                     ("36個月逐腿正式判決", C.LAYER3["checkpoint_4_months"])]:
         left = mo - m
         if 0 < left <= 1:
             L.append("")

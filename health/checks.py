@@ -192,27 +192,30 @@ def mechanism(legs_result=None):
          等於要人記得去按 —— 而這條規則存在的理由正是「不要依賴當下的你」。
 
        分級原則(依使用者原則「寧願多虧錢也不要誤判」):
-         ☠️ 可處決  = 事實型單一事件, 誤判率確實趨近零 (DVOL危機條款、對帳連續失敗)
+         ☠️ 可處決  = 歷史上從未觸發、且有寬裕距離 (見 tools/rule_history_check.py)
          ⚖️ 需人工裁決 = 本次接線時發現【寫死的規則本身會誤判】的兩條 (見各自註解)
-       絕不自動處決任何一條我無法證明誤判率極低的規則。
+       絕不自動處決任何一條沒拿歷史驗證過的規則。
+
+       ★2026-11-03 我在這裡寫過「DVOL危機條款是事實型判定, 誤判率確實趨近零」, 但沒有驗證。
+         它在 11-15 觸發後才跑歷史: 回測期間會觸發 8 次。教訓: 「誤判率很低」是要算出來的, 不是說出來的。
     """
     alerts = []
     P = C.LAYER3
 
-    # ---- 1. DVOL 特別條款: BTC 7日跌 >15% 而 DVOL 腿沒賺錢 → 處決 ----
-    #    事實型判定: 保單在理賠日有沒有賠付。無灰色地帶, 故維持可處決。
-    #    掃全史: 這條從未執行過, 必須能回答「過去有沒有漏掉的觸發」。
-    #    ★判定本身一律走 dvol_crisis_check() —— 不在這裡重寫一份。
-    #      否則那個函式又會變成「定義了但沒人呼叫」的死程式碼, 正是本次要修掉的病。
-    for ev in book.crisis_windows(P["dvol_crisis_btc_drop"]):
-        if ev["dvol_ret"] is None:
-            continue
-        a = dvol_crisis_check(ev["btc_ret"], ev["dvol_ret"])
-        if a is None:
-            continue
-        a = dict(a, msg=f"{a['msg']} [事件日 {ev['end']}]")
-        if book.save_mech_verdict(f"dvol_crisis_{ev['end']}", dict(rule="dvol_crisis", **ev)):
-            alerts.append(a)                        # ★只在第一次偵測到時發 → 不每小時轟炸
+    # ---- 1. DVOL 特別條款 → ★2026-11-25 v3 刪除 (dvol_crisis_btc_drop = None) ----
+    #    回測期間會觸發 8 次, 第一次在資料起點後第22天。詳見 config 與 CHANGELOG v3。
+    #    程式保留: 若日後有人重新啟用, 判定仍走 dvol_crisis_check(), 不在這裡另寫一份。
+    if P.get("dvol_crisis_btc_drop") is not None:
+        for ev in book.crisis_windows(P["dvol_crisis_btc_drop"]):
+            if ev["dvol_ret"] is None:
+                continue
+            a = dvol_crisis_check(ev["btc_ret"], ev["dvol_ret"])
+            if a is None:
+                continue
+            a = dict(a, msg=f"{a['msg']} [事件日 {ev['end']}]",
+                     action="⚠️ 此條曾於 2026-11-25 因回測期間會誤殺8次而刪除; 若它又被啟用, 先讀 CHANGELOG v3")
+            if book.save_mech_verdict(f"dvol_crisis_{ev['end']}", dict(rule="dvol_crisis", **ev)):
+                alerts.append(a)                    # ★只在第一次偵測到時發 → 不每小時轟炸
 
     # ---- 2. 對帳連續失敗 → 執行層壞了 ----
     #    事實型判定。注意: 這殺的是「執行層」不是某條腿的策略, 動作是修水管。
@@ -262,12 +265,13 @@ def mechanism(legs_result=None):
     return alerts
 
 def dvol_crisis_check(btc_weekly_return, dvol_weekly_return):
-    """★特別條款: BTC單週跌>15%而DVOL腿沒賺錢 → 立即處決, 不用等12個月
-       理由: DVOL是危機保單, 危機時不賺就是廢的
+    """特別條款的判定 —— ★2026-11-25 v3 已刪除, 只在 dvol_crisis_btc_drop 被重新設值時才會用到
+       原理由「DVOL是危機保單, 危機時不賺就是廢的」—— 前提錯誤, 見 CHANGELOG v3
     """
-    if btc_weekly_return is None or dvol_weekly_return is None:
+    thr = C.LAYER3.get("dvol_crisis_btc_drop")
+    if thr is None or btc_weekly_return is None or dvol_weekly_return is None:
         return None
-    if btc_weekly_return <= C.LAYER3["dvol_crisis_btc_drop"]:
+    if btc_weekly_return <= thr:
         if dvol_weekly_return <= 0:
             return _alert("JUDGMENT",
                 f"☠️ DVOL特別條款觸發: BTC單週{btc_weekly_return*100:.1f}% 而DVOL腿{dvol_weekly_return*100:+.1f}%",

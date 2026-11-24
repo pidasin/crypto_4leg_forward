@@ -106,10 +106,16 @@ LAYER3 = dict(
     #   高 std 的風險已由 LAYER2["premium_std_high"]=12.0 的 WARN 覆蓋, 不另設處決線:
     #     「處於不利 regime」是績效問題不是機制死亡, 為此殺腿正是型I誤殺的典型。
     mech_premium_std_floor = None,  # 已停用 (見上)。None = 機制層跳過此檢查
-    # 特別條款: BTC單週跌>15% 而 DVOL腿沒賺錢 → 立即處決DVOL腿
-    # ★這條【不延長】: 它是機制判定不是統計判定 —— DVOL是危機保單, 危機沒賠付=保單無效,
-    #   單一事件即足以證明。且實測歷史4次真崩盤DVOL腿0/4全虧(平均-15.02%)。
-    dvol_crisis_btc_drop = -0.15,
+    # ★★2026-11-25 v3: DVOL 特別條款【刪除】。原值 -0.15, 原文「BTC單週跌>15% 而 DVOL腿沒賺錢 → 立即處決」。
+    #   它在 2026-11-15 與 11-18 兩度觸發, 觸發後才拿它去跑歷史(tools/rule_history_check.py):
+    #     2021-04 起 BTC 7日 ≤-15% 共 14 次, DVOL腿當週沒賺 8 次 → 8 次都會處決,
+    #     第一次在 2021-05-15(資料起點後第22天)。照它, DVOL腿根本不可能被選進組合。
+    #   前提錯了: DVOL腿不是「危機保單」, 是「恐慌時逆勢買進」—— 崩盤當週一邊買一邊跌是它的正常行為,
+    #     它的錢在崩盤之後: 崩盤當週合計 -25% / 崩盤後30天 +58% / 其餘時間 +177%。
+    #   原註解「實測歷史4次真崩盤DVOL腿0/4全虧」本身就證明了這條會在第一次崩盤殺掉它 —— 沒人發現。
+    #   ⚠️ 這是在規則【觸發之後】才修改的, 依 README 規定重置判決時鐘。詳見 CHANGELOG v3。
+    #   DVOL腿改走與其他三腿相同的判決時程, 不另設替代條款(剛看完這次崩盤就設計新條件 = 又在看結果定規則)。
+    dvol_crisis_btc_drop = None,     # None = 已刪除, 機制層跳過
     # T腿觀察: 它ETF後已從1.78衰減到0.58
     tleg_watch = True,
 )
@@ -132,7 +138,12 @@ DISCORD_WEBHOOK_ENV = "DISCORD_WEBHOOK"   # 從環境變數讀
 #   2026-09-05 修訂 LAYER3 時一併重置。代價是損失已跑的1.6個月, 換誤殺率53.3%→19.9%。
 #   ★重置是誠實的前提: 此次修訂發生在【尚未看到任何判決結果】之時(首個檢查點6個月未到),
 #     動機是統計檢定力分析而非為了救某條腿。日後若在看到結果後才想改, 那就是自欺。
-JUDGMENT_START = "2026-09-05"
+#
+#   ★2026-11-25 v3 再次重置 (2026-09-05 → 2026-11-25), 而且這次【是】在看到判決結果之後:
+#     DVOL 特別條款於 11-15 觸發, 之後才發現它在回測期間會觸發 8 次。依 README「要改就重置時鐘」執行。
+#     能這樣改的唯一理由是: 「這條規則與回測矛盾」是觸發前就存在的客觀事實, 只是觸發後才被發現。
+#     這不改變它是「看到結果後才改」的事實 —— CHANGELOG v3 如實記錄。
+JUDGMENT_START = "2026-11-25"
 
 def start_dt():
     return datetime.fromisoformat(START_DATE).replace(tzinfo=timezone.utc)
@@ -141,9 +152,11 @@ def judgment_start_dt():
     return datetime.fromisoformat(JUDGMENT_START).replace(tzinfo=timezone.utc)
 
 def months_running():
-    """判決時鐘已跑幾個月 (用於 LAYER3 檢查點)"""
+    """判決時鐘已跑幾個月 (用於 LAYER3 檢查點)
+    ★下限 0: JUDGMENT_START 是用戶所在時區(台灣)的日期, UTC 可能還在前一天 → 不可顯示負數
+    """
     delta = datetime.now(timezone.utc) - judgment_start_dt()
-    return delta.days / 30.44
+    return max(delta.days, 0) / 30.44
 
 def months_tracking():
     """資料軌跡已跑幾個月 (用於顯示 forward 累積了多少資料)"""

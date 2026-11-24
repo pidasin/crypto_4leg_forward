@@ -4,7 +4,7 @@
   python run.py hourly    # 每小時: 溢價腿 + DVOL腿 + 第一層檢查
   python run.py daily     # 每日:   A腿 + T腿 + 第一層檢查 + NAV記錄
   python run.py monthly   # 每月:   第二層檢查
-  python run.py judge     # 判決:   第三層 (12/18個月)
+  python run.py judge     # 判決:   第三層 (6/12/24/36個月, v2起)
   python run.py status    # 看目前狀態
 """
 import sys, os, json
@@ -188,7 +188,7 @@ def status():
     R = book.leg_returns()
     print("="*66)
     print(f"四腿 forward track — 資料軌跡 {C.months_tracking():.2f} 個月 (自 {C.START_DATE})")
-    print(f"                     判決時鐘 {m:.2f} 個月 (自 {C.JUDGMENT_START}, v2重置)")
+    print(f"                     判決時鐘 {m:.2f} 個月 (自 {C.JUDGMENT_START}, v3重置 · 見 CHANGELOG)")
     print("="*66)
     print(f"\n模式: {C.MODE}   名目本金: ${C.CAPITAL_USD:,.0f}")
     print(f"誠實預期: Sharpe {C.HONEST['honest_sharpe']} (回測{C.HONEST['backtest_sharpe']}, 已打折)")
@@ -198,15 +198,17 @@ def status():
         if p: print(f"  {leg:8} {json.dumps({k:round(v,4) for k,v in p.items()}, ensure_ascii=False)}")
         else: print(f"  {leg:8} (無部位)")
     print(f"\n【下一個檢查點】")
+    # ★2026-11-25: 原本還寫著 v1 的「12個月第一次正式判決 / 18個月灰色地帶」, 與 v2 起的實際規則不符
     for name, mo in [("6個月(只看有沒有壞掉)", C.LAYER3["checkpoint_1_months"]),
-                     ("12個月(第一次正式判決)", C.LAYER3["checkpoint_2_months"]),
-                     ("18個月(灰色地帶延長賽)", C.LAYER3["checkpoint_3_months"])]:
+                     ("12個月(逐腿只標記)", C.LAYER3["checkpoint_2_months"]),
+                     ("24個月(組合層可判決)", C.LAYER3["checkpoint_3_months"]),
+                     ("36個月(逐腿正式判決)", C.LAYER3["checkpoint_4_months"])]:
         left = mo - m
         print(f"  {name:26} {'✅ 已到' if left<=0 else f'還有 {left:.1f} 個月'}")
     tr = book.read_jsonl(book.TRADE_F)
     print(f"\n【累計】交易 {len(tr)} 筆   NAV記錄 {len(book.read_jsonl(book.NAV_F))} 筆")
     if not R.empty and len(R)>30:
-        print(f"\n【各腿forward表現】(僅供參考, 12個月前不做判決)")
+        print(f"\n【各腿forward表現】(僅供參考, 逐腿正式判決在36個月)")
         for leg in R.columns:
             d = R[leg].dropna().resample("D").sum()      # ★逐筆(小時)→日, 才配得上√365
             if len(d)>30 and d.std()>0:

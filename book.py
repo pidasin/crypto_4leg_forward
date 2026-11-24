@@ -252,6 +252,9 @@ def drawdown_now():
 
 MECH_F = os.path.join(STATE, "mech_vitals.jsonl")
 MECH_VERDICT_F = os.path.join(STATE, "mech_verdicts.json")
+# ★模組層級常數(而非函式內硬寫路徑) → 測試才能把它換到暫存目錄。
+#   2026-11-25 發現: 原本寫死在 recon_fail_days() 裡, 導致「對帳連續失敗」這條規則從未被測試過。
+RECON_F = os.path.join(os.path.dirname(os.path.abspath(__file__)), "state_testnet", "recon.jsonl")
 
 def record_mech_vitals(res, ts=None):
     """★每個 cycle 記錄機制生命徵象 → 讓「持續N天」類的判定日後可驗證
@@ -335,8 +338,7 @@ def recon_fail_days():
     ★必須區分「對帳失敗」與「根本沒在跑」: 後者是 None, 不是 0 —— 否則本機沒金鑰時
       會把「沒資料」誤讀成「一切正常」。
     """
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "state_testnet", "recon.jsonl")
-    df = read_jsonl(path)
+    df = read_jsonl(RECON_F)
     if df.empty or "ok" not in df.columns: return None, None
     df["ts"] = pd.to_datetime(df["ts"], format="mixed", utc=True)
     ok_by_day = df.set_index("ts")["ok"].astype(bool).resample("D").max().dropna()

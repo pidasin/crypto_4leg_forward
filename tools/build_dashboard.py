@@ -337,8 +337,9 @@ def main():
 資料軌跡 {track_months:.2f} 個月 (起算 {C.START_DATE})<br>
 6月=只看有沒有壞掉 · <b>12/24月=只標記不處決</b> · 24月=組合層可判決 ·
 <b>36月=逐腿正式判決</b> (Sharpe&gt;{C.LAYER3["sharpe_survive"]}續命 / &lt;{C.LAYER3["sharpe_kill"]}處決)<br>
-<span style="color:#fbbf24">v2修訂(2026-09-05): 12個月逐腿判決誤殺率53.3%過高 → 績效判決延至36個月(19.9%)。
-機制死亡(資料源消失/部位凍結90天/對帳連7天失敗/DVOL危機沒賠付)維持即刻處決。</span></div></div>"""
+<span style="color:#fbbf24">v2(2026-09-05): 12個月逐腿判決誤殺率53.3%過高 → 績效判決延至36個月(19.9%)。<br>
+v3(2026-11-25): DVOL特別條款刪除 —— 11/15觸發後才發現它在回測期間會誤殺8次。
+這是<b>看到判決後才改</b>的, 故判決時鐘重置。機制死亡(部位凍結90天/對帳連7天失敗)維持即刻處決。</span></div></div>"""
 
     # ---- 各腿生命徵象卡 ----
     def leg_diag(leg): return (sd.get(leg) or {}).get("diag", {})
@@ -531,12 +532,18 @@ def main():
             lamp = "🔴" if bad else ("✅" if armed else "⚪")
             return (f'<tr><td><b>{name}</b></td><td class="{"neg" if bad else ""}">{lamp} {val}</td>'
                     f'<td class="sm">{thr}</td><td class="sm">{note}</td></tr>')
-        # 1 DVOL 危機條款
-        _ev = _bk.crisis_windows(C.LAYER3["dvol_crisis_btc_drop"])
-        _failed = [e for e in _ev if not e["passed"]]
-        _ms.append(mrow("DVOL 危機條款", f"{len(_ev)} 次觸發 / {len(_failed)} 次沒賠付",
-                        True, f"BTC 7日 ≤ {C.LAYER3['dvol_crisis_btc_drop']*100:.0f}%",
-                        "保單在理賠日有沒有賠付 · 可即刻處決", bad=bool(_failed)))
+        # 1 DVOL 危機條款 (v3 刪除)
+        _thr = C.LAYER3.get("dvol_crisis_btc_drop")
+        if _thr is None:
+            _ms.append(mrow("DVOL 危機條款", "已刪除 (v3)", False, "—",
+                            "11/15 觸發後才驗證: 回測期間會誤殺8次(第一次在資料起點後第22天)。"
+                            "DVOL腿是恐慌時買進, 崩盤當週虧是正常行為, 錢在崩盤之後"))
+        else:
+            _ev = _bk.crisis_windows(_thr)
+            _failed = [e for e in _ev if not e["passed"]]
+            _ms.append(mrow("DVOL 危機條款", f"{len(_ev)} 次觸發 / {len(_failed)} 次沒賠付",
+                            True, f"BTC 7日 ≤ {_thr*100:.0f}%",
+                            "⚠️ 此條曾因回測會誤殺8次而刪除, 重新啟用前先讀 CHANGELOG v3", bad=bool(_failed)))
         # 2 部位凍結
         for _lg, _nm in [("premium","溢價"),("dvol","DVOL"),("aleg","A腿"),("tleg","T腿")]:
             _d, _ts, _ever = _bk.frozen_days(_lg)
@@ -664,7 +671,7 @@ function showEqChart(which){{
 <div class="sub" style="margin:6px 2px 0">綠=模擬paper(完美成交假設) · 藍=實際模擬金testnet(真下單,含滑點與最小下單量卡單) · 橘=買進持有BTC不動(同一天起算)</div>
 <div class="sub" style="margin:2px 2px 0">paper {f"{pa_now:+.2f}%" if pa_now is not None else "—"} vs 買進持有 {f"{bh_now:+.2f}%" if bh_now is not None else "—"}
 → 超額 {f"{bh_excess:+.2f}%" if bh_excess is not None else "—"}
-<span class="sm">(正值=四腿贏過純抱BTC,負值=不如不動;判決仍在12個月,現階段僅供參考不代表結論)</span></div>
+<span class="sm">(正值=四腿贏過純抱BTC,負值=不如不動;逐腿正式判決在判決時鐘第36個月,現階段僅供參考不代表結論)</span></div>
 <h3 style="font-size:14px;margin:16px 0 4px">追蹤誤差 <span class="sm">(testnet − paper, 負值=執行成本, 越平穩越好)</span></h3>
 {diff_svg}
 <div class="sub" style="margin:6px 2px 0">目前 {cur_diff_s} · 平均 {avg_diff_s} · 這就是「理想回測 vs 真實執行」的全部差距</div>
@@ -686,7 +693,7 @@ function showEqChart(which){{
 <div class="note">⚠️ <b>這是水管的數字, 不是策略的數字</b>: 測試網用market單(taker費+合成簿滑價),
 損益會系統性差於paper帳面。評估策略看paper; 這頁看的是「下單/對帳有沒有正常運作」和大致盈虧。<br>
 誠實預期 Sharpe {C.HONEST["honest_sharpe"]} · 預期MDD {C.HONEST["expected_mdd"]}% ·
-預期最長套牢 {C.HONEST["expected_worst_underwater_days"]}天 — 虧損期是預期內的, 判決在12個月。</div>
+預期最長套牢 {C.HONEST["expected_worst_underwater_days"]}天 — 虧損期是預期內的, 逐腿正式判決在判決時鐘第36個月。</div>
 <div class="foot">paper起算 {C.START_DATE} · 模式 {C.MODE} · 本金基準 ${base:,.0f}</div>
 </body></html>"""
 

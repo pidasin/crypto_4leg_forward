@@ -1,0 +1,18 @@
+name: test (機制層合成測試)
+# ★只在 .py 或 requirements 有變更時跑 → bot 每小時的 commit 只動 state/ 與 docs/, 不會觸發, 不浪費額度。
+#   用正式環境同一套安裝方式(同 Python 版本、同 requirements), 避免「本機 pandas 2.2 過、正式 pandas 3.x 壞」。
+on:
+  push:
+    paths: ['**.py', 'requirements.txt', '.github/workflows/test.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - run: python tests/test_mech.py
