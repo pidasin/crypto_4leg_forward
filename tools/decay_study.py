@@ -80,9 +80,14 @@ def cb(product, gran, start):
 
 
 def dvol_hist(cur="BTC"):
+    """★2026-11-15 修正: Deribit 單次最多回 1000 點(只回【最新】的1000點, 附 continuation)。
+    原本每段要 60 天 = 1440 點 → 每段前 18 天被靜默丟掉, 資料 30% 是洞, z 分數跨洞計算,
+    導致 2026-11-03 報告的 DVOL腿數字全錯(2026年 +1.13, 實為 -0.52)。
+    改為每段 30 天(721 點 < 1000), 並在抓完後 assert 沒有缺口。
+    """
     out, c0 = [], datetime(2020, 1, 1, tzinfo=timezone.utc)
     while c0 < NOW:
-        seg = min(c0 + timedelta(days=60), NOW)
+        seg = min(c0 + timedelta(days=30), NOW)
         r = _get("https://www.deribit.com/api/v2/public/get_volatility_index_data",
                  dict(currency=cur, start_timestamp=int(c0.timestamp() * 1000),
                       end_timestamp=int(seg.timestamp() * 1000), resolution=3600))
@@ -92,7 +97,10 @@ def dvol_hist(cur="BTC"):
         return None
     df = pd.DataFrame(out, columns=["t", "o", "h", "l", "c"])
     df["t"] = pd.to_datetime(df["t"], unit="ms")
-    return df.drop_duplicates("t").sort_values("t").set_index("t")["c"].astype(float)
+    s = df.drop_duplicates("t").sort_values("t").set_index("t")["c"].astype(float)
+    gap = s.index.to_series().diff().max()
+    assert gap <= pd.Timedelta(hours=6), f"DVOL 資料有 {gap} 的缺口 —— 分頁又漏資料了, 結果不可信"
+    return s
 
 
 def fng_hist():
